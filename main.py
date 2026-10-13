@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, StringConstraints
 
+from smart_ai_gateway.services.semantic_cache import (generate_embedding, search_cache, store_cache)
 
 app = FastAPI()
 
@@ -30,6 +31,15 @@ class ChatRequest(BaseModel):
     ]
 
 
+def call_ai_model(prompt: str) -> str:
+    """
+    Placeholder function to call the AI model.
+    In a real implementation, this would interface with an AI service.
+    """
+    # For now, return a mock response
+    return f"Generated AI response to: {prompt}"
+
+# END POINTS HERE, can probably move them to another folder later.
 # Serve the frontend webpage
 @app.get("/")
 def home():
@@ -45,12 +55,42 @@ def health():
 # Receive a user's prompt
 @app.post("/chat")
 def chat(request: ChatRequest):
-    user_prompt = request.prompt
+    user_prompt = request.prompt.strip()
 
     # Mock AI response for initial testing
     response = f"You asked: {user_prompt}"
 
+    if not user_prompt:
+        return {
+            "response": "Please enter a prompt.",
+            "source": "validation"
+        }
+
+    # Generate the prompt embedding
+    embedding = generate_embedding(user_prompt)
+
+    # Search the Qdrant semantic cache
+    cached_result = search_cache(embedding)
+
+    # Check the cache result, if cache hit
+    if cached_result is not None:
+        return { 
+            "response": cached_result["response"],
+            "source": "semantic_cache",
+            "similarity_score": cached_result["similarity_score"]
+        }
+
+    # Else if cache miss - generate a response for now
+    # Need call AI model here to give response
+    answer = call_ai_model(user_prompt)
+
+    # Store the prompt and answer
+    store_cache(prompt=user_prompt, response=answer, embedding=embedding)
+
+    # Return the newly generated answer
+    # This will only be returned if the cache miss
     return {
-        "response": response,
-        "source": "mock"
+        "response": answer,
+        "source": "mock_llm",
+        "similarity_score": None
     }
