@@ -1,3 +1,6 @@
+import asyncio
+from contextlib import asynccontextmanager
+from scheduler.scheduler_worker import SchedulerWorker
 
 from pathlib import Path
 from typing import Annotated
@@ -8,7 +11,19 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, StringConstraints
 
 
-app = FastAPI()
+scheduler_worker = SchedulerWorker()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler_worker.start()
+    try:
+        yield
+    finally:
+        scheduler_worker.stop()
+
+
+app = FastAPI(lifespan=lifespan)
 
 # Resolve paths relative to this Python file
 BASE_DIR = Path(__file__).resolve().parent
@@ -29,6 +44,9 @@ class ChatRequest(BaseModel):
         StringConstraints(strip_whitespace=True, min_length=1, max_length=4000)
     ]
 
+class SchedulerChatRequest(BaseModel):
+    user_id: str
+    prompt: str
 
 # Serve the frontend webpage
 @app.get("/")
@@ -54,3 +72,14 @@ def chat(request: ChatRequest):
         "response": response,
         "source": "mock"
     }
+
+@app.post("/scheduler/chat")
+async def scheduler_chat(request: SchedulerChatRequest):
+    future = scheduler_worker.submit(
+        request.user_id,
+        request.prompt
+    )
+
+    result = await asyncio.wrap_future(future)
+
+    return result
