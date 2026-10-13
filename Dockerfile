@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application files
 COPY main.py .
-COPY static/ ./static/
+COPY static ./static/
 
 # Document the application's listening port
 EXPOSE 8000
