@@ -9,7 +9,7 @@ from sentence_transformers import SentenceTransformer
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 COLLECTION_NAME = "semantic_cache"
 
-SIMILARITY_THRESHOLD = 0.85  # Adjust this threshold based on your needs
+SIMILARITY_THRESHOLD = 0.90  # Adjust this threshold based on your needs
 
 # Connect to the Qdrant Server
 # Make sure the server is running on dockers / kubernetes
