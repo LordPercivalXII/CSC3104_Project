@@ -1,6 +1,5 @@
 import threading
 import time
-from urllib import request
 import uuid
 from concurrent.futures import Future
 
@@ -79,6 +78,11 @@ class SchedulerWorker:
             user_id, request = result
             request_id = request["request_id"]
 
+            # Skip requests the caller already cancelled
+            if not request["future"].set_running_or_notify_cancel():
+                self.update_status(request_id, "CANCELLED")
+                continue
+
             try:
                 self.update_status(request_id, "PROCESSING")
 
@@ -111,7 +115,7 @@ class SchedulerWorker:
             if request_id not in self.jobs:
                 raise KeyError(f"Unknown request ID: {request_id}")
 
-        self.jobs[request_id]["status"] = status
+            self.jobs[request_id]["status"] = status
 
     def get_status(self, request_id):
         with self.jobs_lock:
@@ -128,3 +132,9 @@ class SchedulerWorker:
 
         if self.thread:
             self.thread.join()
+
+        # Cancel anything still queued so callers aren't left waiting
+        while (result := self.scheduler.get_next_request()) is not None:
+            _, request = result
+            request["future"].cancel()
+            self.update_status(request["request_id"], "CANCELLED")
