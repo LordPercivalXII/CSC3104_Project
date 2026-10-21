@@ -6,14 +6,18 @@ from dataclasses import dataclass, field
 @dataclass(frozen=True)
 class CacheConfig:
     redis_url: str = field(default_factory=lambda: os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+    index_name: str = field(default_factory=lambda: os.getenv("CACHE_INDEX", "idx:cache"))
     key_prefix: str = field(default_factory=lambda: os.getenv("CACHE_PREFIX", "cache:"))
+    # Cosine similarity a neighbour must reach to count as a hit. This is the value you sweep.
+    similarity_threshold: float = field(
+        default_factory=lambda: float(os.getenv("CACHE_SIMILARITY_THRESHOLD", "0.90"))
+    )
     # Seconds before a cached answer expires. 0 disables expiry.
     ttl_seconds: int = field(default_factory=lambda: int(os.getenv("CACHE_TTL_SECONDS", "86400")))
-    # Whether a hit pushes the expiry back (sliding TTL) or the entry dies at a fixed time.
-    refresh_ttl_on_hit: bool = field(
-        default_factory=lambda: os.getenv("CACHE_REFRESH_TTL_ON_HIT", "false").lower() == "true"
+    embedding_model: str = field(
+        default_factory=lambda: os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
     )
-    # Ignore case, extra whitespace and trailing punctuation when matching prompts.
-    normalise_prompts: bool = field(
-        default_factory=lambda: os.getenv("CACHE_NORMALISE_PROMPTS", "true").lower() == "true"
-    )
+    embedding_dim: int = field(default_factory=lambda: int(os.getenv("EMBEDDING_DIM", "384")))
+    # HNSW graph parameters. Defaults are fine for a project-sized cache.
+    hnsw_m: int = 16
+    hnsw_ef_construction: int = 200
