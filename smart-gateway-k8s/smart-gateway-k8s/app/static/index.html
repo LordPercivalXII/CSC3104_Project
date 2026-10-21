@@ -1,0 +1,42 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Smart AI Gateway</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/script.js" defer></script>
+</head>
+
+<body>
+    <div class="chat-container">
+        <header>
+            <h1>Smart AI Gateway</h1>
+            <p>SME Employee AI Assistant</p>
+        </header>
+
+        <main id="chat-box" aria-live="polite">
+            <div class="message assistant">
+                Hello! How can I help you today?
+            </div>
+        </main>
+
+        <form id="chat-form">
+            <input
+                type="text"
+                id="prompt-input"
+                placeholder="Ask me anything..."
+                aria-label="Your message"
+                required
+            >
+
+            <button type="submit" id="send-button">
+                Send
+            </button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,53 @@
+# Full stack: gateway + Redis (exact cache) + Qdrant (semantic cache).
+#   docker compose up --build        then open http://localhost:8000
+services:
+  gateway:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      CACHE_MODE: both               # none | exact | semantic | both
+      FAIR_SHARE_ENABLED: "true"
+      REDIS_URL: redis://redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      CACHE_SIMILARITY_THRESHOLD: "0.90"
+      CACHE_TTL_SECONDS: "86400"
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started   # the gateway retries until Qdrant answers and creates its collection
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s              # loading the embedding model takes a while
+
+  # Settings carried over from the redis_caching branch: when memory is full, evict
+  # the least recently used entries (try allkeys-lfu as an alternative policy).
+  redis:
+    image: redis:7.4
+    command: ["redis-server", "--appendonly", "yes",
+              "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "127.0.0.1:6379:6379"        # local only: this Redis has no password
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Local development only: no authentication configured.
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "127.0.0.1:6333:6333"        # dashboard at http://localhost:6333/dashboard
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+volumes:
+  redis-data:
+  qdrant-data:

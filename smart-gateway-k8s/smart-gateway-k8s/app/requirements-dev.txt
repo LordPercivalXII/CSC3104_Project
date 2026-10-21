@@ -1,0 +1,5 @@
+# Test tooling. The tests stub the embedding model, so requirements-embedding.txt is not needed.
+-r requirements.txt
+pytest
+httpx
+fakeredis

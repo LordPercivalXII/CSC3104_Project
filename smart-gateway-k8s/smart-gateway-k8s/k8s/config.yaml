@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  namespace: llm-gateway
+data:
+  CACHE_MODE: both                       # none | exact | semantic | both
+  FAIR_SHARE_ENABLED: "true"             # per-user round-robin queue (per replica, see README)
+  REDIS_URL: redis://redis:6379/0
+  QDRANT_URL: http://qdrant:6333
+  CACHE_SIMILARITY_THRESHOLD: "0.90"     # semantic hit needs cosine score >= this
+  CACHE_TTL_SECONDS: "86400"             # exact-cache expiry; 0 = never
+  CACHE_REFRESH_TTL_ON_HIT: "false"
+  CACHE_NORMALISE_PROMPTS: "true"
+  LLM_MODEL: mock-llm                    # part of the exact-cache key
+  LOG_LEVEL: INFO
