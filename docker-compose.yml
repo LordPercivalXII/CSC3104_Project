@@ -1,0 +1,32 @@
+# Lives at the repo root: CSC3104_Project/docker-compose.yml
+# Expects the cache code in CSC3104_Project/caching/{gateway,dashboard}.
+services:
+  redis:
+    image: redis:7.4
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes",
+              "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  dashboard:
+    build:
+      context: ./caching                 # folder that contains gateway/ and dashboard/
+      dockerfile: dashboard/Dockerfile   # relative to the context above
+    ports:
+      - "8080:8080"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DASHBOARD_TOKEN: ${DASHBOARD_TOKEN:-}   # set this before exposing the dashboard
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  redis-data:

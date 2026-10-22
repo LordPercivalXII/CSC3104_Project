@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gateway cache</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F3F5F7;
+    --surface: #FFFFFF;
+    --ink: #18212B;
+    --muted: #5B6875;
+    --rule: #D5DBE1;
+    --hit: #2B54D6;
+    --miss: #C08A1E;
+    --danger: #B3261E;
+    --select: #E6ECFB;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #151B22;
+      --surface: #1C242D;
+      --ink: #E4E9EE;
+      --muted: #94A1AE;
+      --rule: #2F3A46;
+      --hit: #7C9BFF;
+      --miss: #E2B04F;
+      --danger: #FF8A80;
+      --select: #263553;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 15px/1.5 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 13px; }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--hit); outline-offset: 2px; }
+
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 28px 24px 48px; }
+  header.top { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0; }
+  .conn { color: var(--muted); font-size: 13px; }
+  .conn .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; }
+  .conn.ok .dot { background: #2E9D5B; }
+  .conn.bad .dot { background: var(--danger); }
+
+  /* The headline: share of requests the cache answered */
+  .ledger { margin: 28px 0 8px; }
+  .ledger h2 { font-size: 32px; line-height: 1.2; font-weight: 500; margin: 0 0 16px; max-width: 30ch; }
+  .bar { display: flex; height: 18px; border-radius: 3px; overflow: hidden; background: var(--rule); }
+  .bar .h { background: var(--hit); transition: width .4s ease; }
+  .bar .m { background: var(--miss); transition: width .4s ease; }
+  .legend { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 10px; color: var(--muted); font-size: 14px; }
+  .legend b { color: var(--ink); font-weight: 600; }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; margin: 24px 0 32px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  .facts div { padding: 12px 16px 12px 0; }
+  .facts dt { color: var(--muted); font-size: 13px; }
+  .facts dd { margin: 2px 0 0; font-weight: 500; }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .toolbar input[type=search] { flex: 1 1 240px; min-width: 0; }
+  input, select { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 7px 10px; }
+  .btn { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 7px 12px; cursor: pointer; }
+  .btn:hover { border-color: var(--muted); }
+  .btn.danger { color: var(--danger); }
+  .btn.danger:hover { border-color: var(--danger); }
+
+  .panes { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 24px; align-items: start; }
+  .list { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-weight: 500; color: var(--muted); font-size: 13px; padding: 10px 12px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  th.num, td.num { text-align: right; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: color-mix(in srgb, var(--select) 55%, transparent); }
+  tbody tr[aria-selected=true] { background: var(--select); }
+  td.prompt { max-width: 0; width: 55%; }
+  td.prompt span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  td .sub { color: var(--muted); font-size: 13px; }
+  .count { color: var(--muted); font-size: 13px; padding: 10px 12px; }
+
+  .detail { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 20px; position: sticky; top: 16px; }
+  .detail h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+  .detail .text { white-space: pre-wrap; word-break: break-word; margin: 0 0 20px; max-height: 40vh; overflow: auto; }
+  .detail dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin: 0 0 20px; font-size: 14px; }
+  .detail dt { color: var(--muted); }
+  .detail dd { margin: 0; word-break: break-all; }
+  .empty { color: var(--muted); }
+  .close { display: none; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 4px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.show { opacity: 1; }
+
+  @media (max-width: 860px) {
+    .ledger h2 { font-size: 24px; }
+    .panes { grid-template-columns: 1fr; }
+    .detail { position: fixed; inset: auto 0 0 0; top: 15vh; border-radius: 8px 8px 0 0; overflow: auto; z-index: 5; display: none; }
+    .detail.open { display: block; }
+    .close { display: inline-block; float: right; }
+    td.team-col, th.team-col { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Gateway response cache</h1>
+    <span class="conn" id="conn"><span class="dot"></span>Connecting to Redis</span>
+  </header>
+
+  <section class="ledger" aria-live="polite">
+    <h2 id="headline">Loading cache statistics</h2>
+    <div class="bar" role="img" id="bar" aria-label="Share of requests answered from cache">
+      <div class="h" id="barHit" style="width:0"></div>
+      <div class="m" id="barMiss" style="width:0"></div>
+    </div>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--hit)"></span>Answered from cache <b id="lgHits">0</b></span>
+      <span><span class="swatch" style="background:var(--miss)"></span>Sent to the LLM <b id="lgMiss">0</b></span>
+      <span>Tokens saved <b id="lgTokens">0</b></span>
+    </div>
+  </section>
+
+  <dl class="facts" id="facts"></dl>
+
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="Search prompts" aria-label="Search prompts">
+    <select id="team" aria-label="Team"><option value="*">All teams</option></select>
+    <select id="model" aria-label="Model"><option value="*">All models</option></select>
+    <select id="sort" aria-label="Sort by">
+      <option value="hits">Most hits</option>
+      <option value="last_hit_at">Recently used</option>
+      <option value="created_at">Newest</option>
+    </select>
+    <button class="btn" id="refresh">Refresh</button>
+    <button class="btn danger" id="clear">Clear entries</button>
+    <button class="btn" id="resetStats">Reset counters</button>
+  </div>
+
+  <div class="panes">
+    <div class="list">
+      <table>
+        <thead><tr>
+          <th>Prompt</th><th class="team-col">Team</th><th class="num">Hits</th><th class="num">Expires in</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="count" id="count"></div>
+    </div>
+    <aside class="detail" id="detail" aria-live="polite">
+      <p class="empty">Select an entry to see the full prompt and cached response.</p>
+    </aside>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let token = "";
+try { token = sessionStorage.getItem("dashToken") || ""; } catch (e) {}
+let selectedKey = null;
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { "X-Dashboard-Token": token, ...(opts.headers || {}) } });
+  if (res.status === 401) {
+    const t = prompt("This dashboard needs a token (DASHBOARD_TOKEN).");
+    if (t === null) throw new Error("Token required");
+    token = t;
+    try { sessionStorage.setItem("dashToken", t); } catch (e) {}
+    return api(path, opts);
+  }
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
+  return res.json();
+}
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n) => Number(n || 0).toLocaleString();
+
+function duration(sec) {
+  if (sec === -1) return "Never";
+  if (sec < 0) return "Gone";
+  if (sec < 60) return `${sec}s`;
+  if (sec < 3600) return `${Math.floor(sec / 60)}m`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)}h ${Math.floor((sec % 3600) / 60)}m`;
+  return `${Math.floor(sec / 86400)}d ${Math.floor((sec % 86400) / 3600)}h`;
+}
+function ago(ts) {
+  if (!ts) return "—";
+  const s = Math.max(0, Math.floor(Date.now() / 1000) - ts);
+  return s < 5 ? "just now" : `${duration(s)} ago`;
+}
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2200);
+}
+function setConn(ok, msg) {
+  $("conn").className = "conn " + (ok ? "ok" : "bad");
+  $("conn").innerHTML = `<span class="dot"></span>${esc(msg)}`;
+}
+
+async function loadOverview() {
+  try {
+    const o = await api("/api/overview");
+    const c = o.cache, total = c.hits + c.misses;
+    setConn(true, `Redis ${o.redis.version}`);
+    $("headline").textContent = total
+      ? `${fmt(c.hits)} of ${fmt(total)} requests were answered from the cache (${(c.hit_rate * 100).toFixed(1)}%)`
+      : "No requests recorded yet";
+    $("barHit").style.width = total ? `${(c.hits / total) * 100}%` : "0";
+    $("barMiss").style.width = total ? `${(c.misses / total) * 100}%` : "0";
+    $("lgHits").textContent = fmt(c.hits);
+    $("lgMiss").textContent = fmt(c.misses);
+    $("lgTokens").textContent = fmt(c.tokens_saved);
+    const facts = [
+      ["Entries stored", fmt(c.stores)],
+      ["Keys in Redis", fmt(o.redis.total_keys)],
+      ["Memory used", `${o.redis.used_memory}${o.redis.max_memory && o.redis.max_memory !== "0B" ? " of " + o.redis.max_memory : ""}`],
+      ["Eviction policy", o.redis.eviction_policy],
+      ["Evicted / expired", `${fmt(o.redis.evicted_keys)} / ${fmt(o.redis.expired_keys)}`],
+      ["Entry lifetime", o.config.ttl_seconds ? duration(o.config.ttl_seconds) + (o.config.refresh_ttl_on_hit ? ", renewed on hit" : "") : "No expiry"],
+    ];
+    $("facts").innerHTML = facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
+  } catch (e) {
+    setConn(false, `Can’t reach the dashboard API: ${e.message}`);
+  }
+}
+
+async function loadFacets() {
+  const f = await api("/api/facets");
+  const keepT = $("team").value, keepM = $("model").value;
+  $("team").innerHTML = `<option value="*">All teams</option>` +
+    Object.entries(f.teams).sort().map(([t, n]) => `<option value="${esc(t)}">${esc(t)} (${n})</option>`).join("");
+  $("model").innerHTML = `<option value="*">All models</option>` +
+    f.models.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join("");
+  $("team").value = [...$("team").options].some((o) => o.value === keepT) ? keepT : "*";
+  $("model").value = [...$("model").options].some((o) => o.value === keepM) ? keepM : "*";
+}
+
+async function loadEntries() {
+  const p = new URLSearchParams({ team: $("team").value, model: $("model").value, q: $("q").value, sort: $("sort").value });
+  try {
+    const d = await api(`/api/entries?${p}`);
+    $("rows").innerHTML = d.entries.map((e) => `
+      <tr data-key="${esc(e.key)}" tabindex="0" aria-selected="${e.key === selectedKey}">
+        <td class="prompt"><span>${esc(e.prompt)}</span><span class="sub">${esc(e.model)} · used ${esc(ago(e.last_hit_at))}</span></td>
+        <td class="team-col">${esc(e.team)}</td>
+        <td class="num">${fmt(e.hits)}</td>
+        <td class="num">${esc(duration(e.ttl))}</td>
+      </tr>`).join("");
+    const shown = d.entries.length;
+    $("count").textContent = d.total === 0
+      ? "No entries match. Send a request through the gateway, or change the filters."
+      : `Showing ${fmt(shown)} of ${fmt(d.total)} entries${d.truncated ? " (scan limit reached)" : ""}`;
+  } catch (e) {
+    $("count").textContent = `Couldn’t load entries: ${e.message}`;
+  }
+}
+
+async function showEntry(key) {
+  selectedKey = key;
+  document.querySelectorAll("#rows tr").forEach((tr) => tr.setAttribute("aria-selected", tr.dataset.key === key));
+  const panel = $("detail");
+  panel.classList.add("open");
+  try {
+    const e = await api(`/api/entry?key=${encodeURIComponent(key)}`);
+    panel.innerHTML = `
+      <button class="btn close" id="closeDetail">Close</button>
+      <h3>Prompt</h3><p class="text">${esc(e.prompt)}</p>
+      <h3>Cached response</h3><p class="text">${esc(e.response)}</p>
+      <dl>
+        <dt>Team</dt><dd>${esc(e.team)}</dd>
+        <dt>Model</dt><dd>${esc(e.model)}</dd>
+        <dt>Hits</dt><dd>${fmt(e.hits)}</dd>
+        <dt>Tokens per call</dt><dd>${e.usage_tokens != null ? fmt(e.usage_tokens) : "Not recorded"}</dd>
+        <dt>Tokens saved</dt><dd>${e.usage_tokens != null ? fmt(e.usage_tokens * e.hits) : "—"}</dd>
+        <dt>Stored</dt><dd>${esc(ago(e.created_at))}</dd>
+        <dt>Last used</dt><dd>${esc(ago(e.last_hit_at))}</dd>
+        <dt>Expires in</dt><dd>${esc(duration(e.ttl))}</dd>
+        <dt>Key</dt><dd class="mono">${esc(e.key)}</dd>
+      </dl>
+      <button class="btn danger" id="del">Delete entry</button>`;
+    $("del").onclick = () => deleteEntry(key);
+    $("closeDetail").onclick = () => panel.classList.remove("open");
+  } catch (err) {
+    panel.innerHTML = `<p class="empty">${esc(err.message)}</p>`;
+  }
+}
+
+async function deleteEntry(key) {
+  if (!confirm("Delete this cached answer? The next matching request will go to the LLM.")) return;
+  await api(`/api/entry?key=${encodeURIComponent(key)}`, { method: "DELETE" });
+  selectedKey = null;
+  $("detail").classList.remove("open");
+  $("detail").innerHTML = `<p class="empty">Entry deleted.</p>`;
+  toast("Entry deleted");
+  refreshAll();
+}
+
+$("rows").addEventListener("click", (e) => { const tr = e.target.closest("tr"); if (tr) showEntry(tr.dataset.key); });
+$("rows").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { const tr = e.target.closest("tr"); if (tr) { e.preventDefault(); showEntry(tr.dataset.key); } }
+});
+
+$("clear").onclick = async () => {
+  const team = $("team").value;
+  const scope = team === "*" ? "every team" : `team “${team}”`;
+  if (!confirm(`Delete all cached entries for ${scope}? Counters are kept.`)) return;
+  const q = team === "*" ? "" : `?team=${encodeURIComponent(team)}`;
+  const r = await api(`/api/clear${q}`, { method: "POST" });
+  toast(`Deleted ${fmt(r.deleted)} entries`);
+  refreshAll();
+};
+$("resetStats").onclick = async () => {
+  if (!confirm("Reset hit, miss and token counters to zero? Cached entries are kept.")) return;
+  await api("/api/stats/reset", { method: "POST" });
+  toast("Counters reset");
+  loadOverview();
+};
+
+let debounce;
+$("q").addEventListener("input", () => { clearTimeout(debounce); debounce = setTimeout(loadEntries, 250); });
+["team", "model", "sort"].forEach((id) => $(id).addEventListener("change", loadEntries));
+$("refresh").onclick = () => refreshAll();
+
+async function refreshAll() {
+  await loadOverview();
+  try { await loadFacets(); } catch (e) {}
+  await loadEntries();
+}
+refreshAll();
+setInterval(loadOverview, 5000);
+</script>
+</body>
+</html>

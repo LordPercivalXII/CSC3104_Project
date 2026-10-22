@@ -7,8 +7,8 @@ import asyncio
 
 from redis.asyncio import Redis
 
-from caching.cache import ResponseCache
-from caching.config import CacheConfig
+from gateway.cache import ResponseCache
+from gateway.config import CacheConfig
 
 
 async def call_llm(prompt: str, model: str) -> tuple[str, int]:
