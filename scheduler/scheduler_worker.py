@@ -7,7 +7,11 @@ from scheduler.fair_scheduler import FairShareScheduler
 
 
 class SchedulerWorker:
-    def __init__(self):
+    def __init__(self, inference_fn=None):
+        # Assign inference function if there is no actual inference, use mock inference.
+        self.inference_fn = (
+            inference_fn if inference_fn is not None else self._mock_inference
+        )
         self.scheduler = FairShareScheduler()
 
         # Wake the worker when a request arrives
@@ -20,6 +24,12 @@ class SchedulerWorker:
         # Track request information
         self.jobs = {}
         self.jobs_lock = threading.Lock()
+
+    @staticmethod
+    # This is for a mock response from a LLM model. NOT REAL!
+    def _mock_inference(prompt: str) -> str:
+        time.sleep(1)
+        return f"You asked: {prompt}"
 
     def start(self):
         if self.running:
@@ -91,14 +101,14 @@ class SchedulerWorker:
                     f"from {user_id}"
                 )
 
-                # Simulate LLM inference
-                time.sleep(1)
+                # Execute the configured inference function when this user gets a turn.
+                answer = self.inference_fn(request["prompt"])
 
                 response = {
-                    "response": f"You asked: {request['prompt']}",
+                    "response": answer,
                     "source": "mock",
                     "user_id": user_id,
-                    "request_id": request_id
+                    "request_id": request_id,
                 }
 
                 self.update_status(request_id, "COMPLETED")

@@ -4,6 +4,14 @@ const promptInput = document.getElementById("prompt-input");
 const chatBox = document.getElementById("chat-box");
 const sendButton = document.getElementById("send-button");
 
+// A stable ID for this browser session during local development.
+let userId = sessionStorage.getItem("gateway_user_id");
+
+if (!userId) {
+    userId = crypto.randomUUID();
+    sessionStorage.setItem("gateway_user_id", userId);
+}
+
 // Add a message to the chat interface
 function addMessage(text, sender) {
     const message = document.createElement("div");
@@ -42,6 +50,7 @@ chatForm.addEventListener("submit", async (event) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
+                user_id: userId,
                 prompt: prompt
             })
         });
