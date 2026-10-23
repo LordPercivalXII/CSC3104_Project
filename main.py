@@ -1,3 +1,6 @@
+import asyncio
+from contextlib import asynccontextmanager
+from scheduler.scheduler_worker import SchedulerWorker
 
 from pathlib import Path
 from typing import Annotated
@@ -9,7 +12,19 @@ from pydantic import BaseModel, StringConstraints
 
 from smart_ai_gateway.services.semantic_cache import (generate_embedding, search_cache, store_cache)
 
-app = FastAPI()
+scheduler_worker = SchedulerWorker()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler_worker.start()
+    try:
+        yield
+    finally:
+        scheduler_worker.stop()
+
+
+app = FastAPI(lifespan=lifespan)
 
 # Resolve paths relative to this Python file
 BASE_DIR = Path(__file__).resolve().parent
@@ -30,6 +45,9 @@ class ChatRequest(BaseModel):
         StringConstraints(strip_whitespace=True, min_length=1, max_length=4000)
     ]
 
+class SchedulerChatRequest(BaseModel):
+    user_id: str
+    prompt: str
 
 def call_ai_model(prompt: str) -> str:
     """
@@ -94,3 +112,14 @@ def chat(request: ChatRequest):
         "source": "mock_llm",
         "similarity_score": None
     }
+
+@app.post("/scheduler/chat")
+async def scheduler_chat(request: SchedulerChatRequest):
+    future = scheduler_worker.submit(
+        request.user_id,
+        request.prompt
+    )
+
+    result = await asyncio.wrap_future(future)
+
+    return result
