@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,24 +13,35 @@
 <body>
     <div class="chat-container">
         <header>
-            <h1>Smart AI Gateway</h1>
-            <p>SME Employee AI Assistant</p>
+            <div class="title">
+                <h1>Smart AI Gateway</h1>
+                <p>SME Employee AI Assistant</p>
+            </div>
+            <div class="header-actions">
+                <button type="button" id="settings-button" class="ghost" aria-expanded="false" aria-controls="settings">Settings</button>
+                <button type="button" id="new-chat-button" class="ghost">New chat</button>
+            </div>
         </header>
 
-        <main id="chat-box" aria-live="polite">
-            <div class="message assistant">
-                Hello! How can I help you today?
-            </div>
-        </main>
+        <section id="settings" hidden>
+            <label>
+                Your name
+                <input type="text" id="name-input" maxlength="64" placeholder="e.g. alice" autocomplete="off">
+            </label>
+            <p>Your name keeps the queue fair between people. Leave it as it is if you are not sure.</p>
+        </section>
+
+        <main id="chat-box" aria-live="polite"></main>
 
         <form id="chat-form">
-            <input
-                type="text"
+            <textarea
                 id="prompt-input"
+                rows="1"
+                maxlength="4000"
                 placeholder="Ask me anything..."
                 aria-label="Your message"
                 required
-            >
+            ></textarea>
 
             <button type="submit" id="send-button">
                 Send

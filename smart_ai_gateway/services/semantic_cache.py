@@ -1,22 +1,23 @@
-import os
 import uuid
 from datetime import datetime, timezone
 
 from qdrant_client import QdrantClient, models
 from sentence_transformers import SentenceTransformer
 
-# Configuration for Qdrant
-QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
-COLLECTION_NAME = "semantic_cache"
+from smart_ai_gateway.config import get_settings
 
-SIMILARITY_THRESHOLD = 0.90  # Adjust this threshold based on your needs
+# All of these come from smart_ai_gateway/gateway.config
+_cfg = get_settings().semantic_cache
+QDRANT_URL = _cfg.qdrant_url
+COLLECTION_NAME = _cfg.collection_name
+SIMILARITY_THRESHOLD = _cfg.similarity_threshold
 
 # Connect to the Qdrant Server
 # Make sure the server is running on dockers / kubernetes
 client = QdrantClient(url=QDRANT_URL)
 
 # Load the embedding model once
-embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+embedding_model = SentenceTransformer(_cfg.embedding_model)
 
 def generate_embedding(prompt: str) -> list[float]:
     """

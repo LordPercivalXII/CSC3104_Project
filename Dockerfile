@@ -1,25 +1,39 @@
+# One image for the whole gateway: web app, semantic-cache client and fair-share worker.
+# Build context = the repo root (same layout as main).
 
 # Use Python 3.11 with a lightweight Linux environment
 FROM python:3.11-slim
 
 # Python configuration
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/opt/hf-cache
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy the Python dependencies list
-COPY requirements.txt .
+# CPU-only PyTorch first. The default Linux wheel pulls ~2 GB of CUDA libraries that a
+# CPU-only embedding model never uses; with this installed, requirements.txt reuses it.
+RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
 
-# Install dependencies inside the container
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the Python dependencies list and install it
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Bake the embedding model into the image so every container starts without downloading it.
+# The name must match the model in smart_ai_gateway/services/semantic_cache.py.
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
 
 # Copy the application files
 COPY main.py .
 COPY static/ ./static/
 COPY scheduler/ ./scheduler/
 COPY smart_ai_gateway/ ./smart_ai_gateway/
+
+# Do not run as root
+RUN useradd --create-home --uid 1000 app
+USER app
 
 # Document the application's listening port
 EXPOSE 8000

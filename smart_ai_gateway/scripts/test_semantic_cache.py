@@ -1,17 +1,19 @@
 
-import os
+import sys
+from pathlib import Path
 
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient, models
 
-SIMILARITY_THRESHOLD = 0.9  # Adjust this threshold based on your needs
+# Make "smart_ai_gateway" importable when this file is run directly as a script
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from smart_ai_gateway.config import get_settings  # noqa: E402
 
-# Qdrant configuration
-QDRANT_URL = os.getenv(
-    "QDRANT_URL",
-    "http://localhost:6333"
-)
-COLLECTION_NAME = "semantic_cache"
+# Settings come from smart_ai_gateway/gateway.config
+_cfg = get_settings().semantic_cache
+SIMILARITY_THRESHOLD = _cfg.similarity_threshold
+QDRANT_URL = _cfg.qdrant_url
+COLLECTION_NAME = _cfg.collection_name
 
 # Connect to Qdrant
 client = QdrantClient(url=QDRANT_URL)
@@ -22,9 +24,7 @@ if not client.collection_exists(COLLECTION_NAME):
     )
 
 # Load the embedding model
-model = SentenceTransformer(
-    "sentence-transformers/all-MiniLM-L6-v2"
-)
+model = SentenceTransformer(_cfg.embedding_model)
 
 
 # ---------------------------------

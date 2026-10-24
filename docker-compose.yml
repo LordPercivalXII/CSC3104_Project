@@ -1,0 +1,42 @@
+# Gateway + Qdrant:   docker compose up --build      then open http://localhost:8000
+#
+# The semantic cache needs its Qdrant collection to exist before the first chat. The one-shot
+# "qdrant-setup" service creates it (same script as smart_ai_gateway/scripts/setup_qdrant.py),
+# retrying until Qdrant answers, and the gateway waits for it to finish.
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "127.0.0.1:6333:6333"   # dashboard at http://localhost:6333/dashboard
+    volumes:
+      - qdrant-data:/qdrant/storage   # cached answers survive "docker compose down"
+
+  qdrant-setup:
+    build: .
+    image: smart-gateway:dev
+    command: ["sh", "-c", "until python smart_ai_gateway/scripts/setup_qdrant.py; do echo 'waiting for Qdrant...'; sleep 2; done"]
+    environment:
+      QDRANT_URL: http://qdrant:6333   # the service name above, not localhost
+    depends_on:
+      - qdrant
+    restart: "no"
+
+  gateway:
+    build: .
+    image: smart-gateway:dev
+    ports:
+      - "8000:8000"
+    environment:
+      QDRANT_URL: http://qdrant:6333
+    depends_on:
+      qdrant-setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s   # loading the embedding model takes a while
+
+volumes:
+  qdrant-data:
