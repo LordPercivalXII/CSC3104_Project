@@ -1,27 +1,52 @@
+import logging
 import threading
 import time
 import uuid
-from concurrent.futures import Future
+from concurrent.futures import Future, InvalidStateError
 
 from scheduler.fair_scheduler import FairShareScheduler
+from scheduler.job_store import MemoryJobStore
+
+logger = logging.getLogger(__name__)
+
+# How long an idle worker waits before checking the queue again. Requests
+# submitted on this pod wake it immediately; requests from other pods are
+# picked up on the next check.
+IDLE_POLL_SECONDS = 0.5
+
+# How long the result listener waits for a result before looping
+RESULT_POLL_SECONDS = 1
 
 
 class SchedulerWorker:
-    def __init__(self, inference_fn=None):
+    def __init__(self, inference_fn=None, scheduler=None, job_store=None, num_workers=1):
         # Assign inference function if there is no actual inference, use mock inference.
         self.inference_fn = (
             inference_fn if inference_fn is not None else self._mock_inference
         )
-        self.scheduler = FairShareScheduler()
+
+        # Defaults keep everything in this process. Pass the Redis versions
+        # to share the queue and job statuses between pods.
+        self.scheduler = scheduler if scheduler is not None else FairShareScheduler()
+        self.job_store = job_store if job_store is not None else MemoryJobStore()
+
+        # Number of requests this instance processes at the same time.
+        # 0 means it only accepts requests and other pods process them.
+        self.num_workers = num_workers
+
+        # Unique per instance, so other pods know where to send our results
+        self.instance_id = uuid.uuid4().hex
 
         # Wake the worker when a request arrives
         self.new_request = threading.Event()
 
         # Allows the worker to stop cleanly
         self.running = False
-        self.thread = None
+        self.threads = []
 
-        # Track request information
+        # Futures of requests submitted to this instance, by request ID.
+        # Futures can't be stored in Redis, so they stay here and the
+        # result is matched back to them by request ID.
         self.jobs = {}
         self.jobs_lock = threading.Lock()
 
@@ -37,12 +62,14 @@ class SchedulerWorker:
 
         self.running = True
 
-        self.thread = threading.Thread(
-            target=self._process_loop,
-            daemon=True
-        )
+        targets = [self._process_loop] * self.num_workers + [self._result_loop]
+        self.threads = [
+            threading.Thread(target=target, daemon=True)
+            for target in targets
+        ]
 
-        self.thread.start()
+        for thread in self.threads:
+            thread.start()
 
     def submit(self, user_id, prompt):
         if not self.running:
@@ -52,99 +79,147 @@ class SchedulerWorker:
         # Future stores the result for the caller
         future = Future()
 
-        request = {
+        with self.jobs_lock:
+            self.jobs[request_id] = future
+
+        future.add_done_callback(
+            lambda done: self._on_future_done(request_id, done)
+        )
+
+        # Status first, so a worker never sees a request without one
+        self.job_store.create(request_id, user_id)
+
+        self.scheduler.add_request(user_id, {
             "request_id": request_id,
             "prompt": prompt,
-            "future": future
-        }
-
-        with self.jobs_lock:
-            self.jobs[request_id] = {
-            "user_id": user_id,
-            "status": "PENDING"
-        }
-
-        self.scheduler.add_request(user_id, request)
+            "reply_to": self.instance_id
+        })
 
         # Tell the worker that work is available
         self.new_request.set()
 
         return future
 
+    def _on_future_done(self, request_id, future):
+        with self.jobs_lock:
+            self.jobs.pop(request_id, None)
+
+        # If the caller gave up while it was still queued, mark it so
+        # no worker on any pod wastes an LLM call on it
+        if future.cancelled():
+            self.job_store.cancel(request_id)
+
     def _process_loop(self):
         while self.running:
-            result = self.scheduler.get_next_request()
-
-            if result is None:
-                self.new_request.clear()
-
-                # Recheck after clearing to avoid
-                # missing a concurrent submission
-                if self.scheduler.pending_count() == 0:
-                    self.new_request.wait(timeout=0.5)
-
-                continue
-
-            user_id, request = result
-            request_id = request["request_id"]
-
-            # Skip requests the caller already cancelled
-            if not request["future"].set_running_or_notify_cancel():
-                self.update_status(request_id, "CANCELLED")
-                continue
-
             try:
-                self.update_status(request_id, "PROCESSING")
+                self._process_next()
+            except Exception:
+                # e.g. Redis briefly unreachable. Keep the worker alive.
+                logger.exception("Scheduler worker error, retrying")
+                time.sleep(1)
 
-                print(
-                    f"Processing request {request_id[:8]} "
-                    f"from {user_id}"
+    def _process_next(self):
+        result = self.scheduler.get_next_request()
+
+        if result is None:
+            self.new_request.clear()
+
+            # Recheck after clearing to avoid
+            # missing a concurrent submission
+            if self.scheduler.pending_count() == 0:
+                self.new_request.wait(timeout=IDLE_POLL_SECONDS)
+
+            return
+
+        user_id, request = result
+        request_id = request["request_id"]
+
+        # Skip requests the caller already cancelled
+        if not self.job_store.claim(request_id):
+            return
+
+        try:
+            print(
+                f"Processing request {request_id[:8]} "
+                f"from {user_id}"
+            )
+
+            # Execute the configured inference function when this user gets a turn.
+            answer = self.inference_fn(request["prompt"])
+
+            response = {
+                "response": answer,
+                "source": "mock",
+                "user_id": user_id,
+                "request_id": request_id,
+            }
+
+            self.job_store.set_status(request_id, "COMPLETED")
+            message = {"request_id": request_id, "response": response}
+
+        except Exception as error:
+            self.job_store.set_status(request_id, "FAILED")
+            message = {"request_id": request_id, "error": error}
+
+        # Send the result to the instance whose caller is waiting for it
+        self.job_store.publish_result(request["reply_to"], message)
+
+    def _result_loop(self):
+        while self.running:
+            try:
+                message = self.job_store.next_result(
+                    self.instance_id, timeout=RESULT_POLL_SECONDS
                 )
+            except Exception:
+                logger.exception("Result listener error, retrying")
+                time.sleep(1)
+                continue
 
-                # Execute the configured inference function when this user gets a turn.
-                answer = self.inference_fn(request["prompt"])
+            if message is not None:
+                self._resolve(message)
 
-                response = {
-                    "response": answer,
-                    "source": "mock",
-                    "user_id": user_id,
-                    "request_id": request_id,
-                }
+    def _resolve(self, message):
+        with self.jobs_lock:
+            future = self.jobs.get(message.get("request_id"))
 
-                self.update_status(request_id, "COMPLETED")
+        if future is None:
+            return
 
-                request["future"].set_result(response)
-
-            except Exception as error:
-                self.update_status(request_id, "FAILED")
-                request["future"].set_exception(error)
+        try:
+            if "error" in message:
+                future.set_exception(message["error"])
+            else:
+                future.set_result(message["response"])
+        except InvalidStateError:
+            # The caller cancelled at the same moment
+            pass
 
     # Allow worker to change status of a request
     def update_status(self, request_id, status):
-        with self.jobs_lock:
-            if request_id not in self.jobs:
-                raise KeyError(f"Unknown request ID: {request_id}")
-
-            self.jobs[request_id]["status"] = status
+        self.job_store.set_status(request_id, status)
 
     def get_status(self, request_id):
-        with self.jobs_lock:
-            job = self.jobs.get(request_id)
-
-            if job is None:
-                return None
-
-        return job["status"]
+        return self.job_store.get_status(request_id)
 
     def stop(self):
         self.running = False
         self.new_request.set()
 
-        if self.thread:
-            self.thread.join()
+        # Wake the result listener so it notices straight away
+        try:
+            self.job_store.publish_result(self.instance_id, {"request_id": None})
+        except Exception:
+            logger.exception("Could not wake result listener")
 
-        # Cancel anything still queued so callers aren't left waiting
-        while (result := self.scheduler.get_next_request()) is not None:
-            _, request = result
-            request["future"].cancel()
-            self.update_status(request["request_id"], "CANCELLED")
+        for thread in self.threads:
+            thread.join()
+        self.threads = []
+
+        # Cancel requests from our callers that haven't been answered, so
+        # they aren't left waiting. Queued ones are marked CANCELLED, so
+        # no other pod processes them either.
+        with self.jobs_lock:
+            futures = list(self.jobs.values())
+
+        for future in futures:
+            future.cancel()

@@ -1,6 +1,7 @@
 import asyncio
+# import time  # uncomment with time.sleep below to simulate LLM latency in demos
 from contextlib import asynccontextmanager
-from scheduler.scheduler_worker import SchedulerWorker
+from scheduler.factory import create_scheduler_worker
 
 from pathlib import Path
 # This annotated thing is a tool in Python's typing module used to add extra, custom metadata to type hints.
@@ -21,9 +22,10 @@ def call_ai_model(prompt: str) -> str:
     In a real implementation, this would interface with an AI service.
     """
     # For now, return a mock response
+    # time.sleep(1)  # uncomment to simulate LLM latency for demos
     return f"Generated AI response to: {prompt}"
 
-scheduler_worker = SchedulerWorker(inference_fn=call_ai_model)
+scheduler_worker = create_scheduler_worker(inference_fn=call_ai_model)
 
 
 @asynccontextmanager
