@@ -43,13 +43,39 @@ class SemanticCacheSettings:
     similarity_threshold: float
     embedding_model: str
     embedding_dim: int
+    ttl_seconds: int
+    sliding_ttl: bool
+    max_age_seconds: int
+    sweep_interval_seconds: int
+    decay_half_life_seconds: int
+    search_candidates: int
+    verify_threshold: float
+    verifier_model: str
+    verifier_threshold: float
+    skip_time_sensitive: bool
 
     def __post_init__(self):
         _require(bool(self.qdrant_url.strip()), "semantic_cache.qdrant_url must not be empty")
         _require(bool(self.collection_name.strip()), "semantic_cache.collection_name must not be empty")
         _require(0.0 <= self.similarity_threshold <= 1.0,
                  "semantic_cache.similarity_threshold must be between 0 and 1")
+        _require(0.0 <= self.verify_threshold <= self.similarity_threshold,
+                 "semantic_cache.verify_threshold must be between 0 and similarity_threshold")
+        _require(0.0 <= self.verifier_threshold <= 1.0,
+                 "semantic_cache.verifier_threshold must be between 0 and 1")
+        _require(not self.verification_enabled or bool(self.verifier_model.strip()),
+                 "semantic_cache.verifier_model must not be empty while verification is on")
         _require(self.embedding_dim > 0, "semantic_cache.embedding_dim must be positive")
+        _require(self.ttl_seconds >= 0, "semantic_cache.ttl_seconds must be 0 or more")
+        _require(self.max_age_seconds >= 0, "semantic_cache.max_age_seconds must be 0 or more")
+        _require(self.sweep_interval_seconds > 0, "semantic_cache.sweep_interval_seconds must be positive")
+        _require(self.decay_half_life_seconds >= 0, "semantic_cache.decay_half_life_seconds must be 0 or more")
+        _require(self.search_candidates > 0, "semantic_cache.search_candidates must be positive")
+
+    @property
+    def verification_enabled(self) -> bool:
+        # The grey zone between the two thresholds is checked by the verifier model
+        return self.verify_threshold < self.similarity_threshold
 
 
 @dataclass(frozen=True)
@@ -71,17 +97,48 @@ class SchedulerSettings:
                  "scheduler.mock_llm_response_template must contain {prompt}")
 
 
+LLM_PROVIDERS = ("gemini", "mock")
+THINKING_LEVELS = ("", "minimal", "low", "medium", "high")
+
+
+@dataclass(frozen=True)
+class LLMSettings:
+    provider: str
+    model: str
+    system_instruction: str
+    thinking_level: str
+    max_output_tokens: int
+    timeout_seconds: int
+    max_retries: int
+
+    def __post_init__(self):
+        _require(self.provider in LLM_PROVIDERS, f"llm.provider must be one of {', '.join(LLM_PROVIDERS)}")
+        _require(self.provider == "mock" or bool(self.model.strip()), "llm.model must not be empty")
+        _require(self.thinking_level in THINKING_LEVELS,
+                 "llm.thinking_level must be empty or one of minimal, low, medium, high")
+        _require(self.max_output_tokens > 0, "llm.max_output_tokens must be positive")
+        _require(self.timeout_seconds > 0, "llm.timeout_seconds must be positive")
+        _require(self.max_retries >= 0, "llm.max_retries must be 0 or more")
+
+    @property
+    def answered_by(self) -> str:
+        # Stored with every cached answer, so answers from another LLM are never served
+        return "mock" if self.provider == "mock" else f"{self.provider}:{self.model}"
+
+
 @dataclass(frozen=True)
 class Settings:
     semantic_cache: SemanticCacheSettings
     gateway: GatewaySettings
     scheduler: SchedulerSettings
+    llm: LLMSettings
 
 
 _SECTIONS = {
     "semantic_cache": SemanticCacheSettings,
     "gateway": GatewaySettings,
     "scheduler": SchedulerSettings,
+    "llm": LLMSettings,
 }
 
 # Older environment variable names that are still honoured.

@@ -45,14 +45,17 @@ spec:
           env:
             - {name: QDRANT_URL, value: "http://qdrant:6333"}   # overrides qdrant_url in gateway.config
             - {name: GATEWAY_CONFIG, value: /etc/gateway/gateway.config}   # every other setting comes from the ConfigMap
+            - name: GEMINI_API_KEY             # Secret created by up.sh from .env; never committed
+              valueFrom:
+                secretKeyRef: {name: gemini-api-key, key: GEMINI_API_KEY, optional: true}
           volumeMounts:
             - {name: gateway-config, mountPath: /etc/gateway, readOnly: true}
           lifecycle:
             preStop:                   # give the load balancer a moment to stop sending traffic before shutdown
               exec: {command: ["sleep", "5"]}
-          resources:                       # PyTorch + the embedding model need real memory
-            requests: {cpu: 250m, memory: 512Mi}
-            limits: {cpu: "1", memory: 1536Mi}
+          resources:                       # PyTorch + the embedding model + the verifier need real memory
+            requests: {cpu: 250m, memory: 768Mi}
+            limits: {cpu: "1", memory: 2Gi}
           startupProbe:                    # the model loads when the app starts: allow up to ~3 min
             httpGet: {path: /health, port: 8000}
             periodSeconds: 5

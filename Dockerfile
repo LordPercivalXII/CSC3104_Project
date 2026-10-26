@@ -21,9 +21,10 @@ RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Bake the embedding model into the image so every container starts without downloading it.
-# The name must match the model in smart_ai_gateway/services/semantic_cache.py.
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
+# Bake the embedding model and the cache verifier (cross-encoder) into the image so every
+# container starts without downloading them.
+# The names must match embedding_model and verifier_model in smart_ai_gateway/gateway.config.
+RUN python -c "from sentence_transformers import SentenceTransformer, CrossEncoder; SentenceTransformer('BAAI/bge-small-en-v1.5'); CrossEncoder('cross-encoder/quora-roberta-base')"
 
 # Copy the application files
 COPY main.py .

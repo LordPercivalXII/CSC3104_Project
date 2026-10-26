@@ -1,5 +1,8 @@
 # Gateway + Qdrant:   docker compose up --build      then open http://localhost:8000
 #
+# The LLM is Gemini ([llm] in smart_ai_gateway/gateway.config). Put your API key in a .env file
+# next to this one (copy .env.example); Compose reads it automatically. .env is git-ignored.
+#
 # The semantic cache needs its Qdrant collection to exist before the first chat. The one-shot
 # "qdrant-setup" service creates it (same script as smart_ai_gateway/scripts/setup_qdrant.py),
 # retrying until Qdrant answers, and the gateway waits for it to finish.
@@ -28,6 +31,7 @@ services:
       - "8000:8000"
     environment:
       QDRANT_URL: http://qdrant:6333
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}   # from .env or your shell
     depends_on:
       qdrant-setup:
         condition: service_completed_successfully
@@ -37,6 +41,19 @@ services:
       timeout: 5s
       retries: 5
       start_period: 60s   # loading the embedding model takes a while
+
+  # Deletes aged-out cache entries every sweep_interval_seconds (gateway.config).
+  # Expired entries are never served anyway; this only frees their storage.
+  cache-sweeper:
+    build: .
+    image: smart-gateway:dev
+    command: ["python", "smart_ai_gateway/scripts/sweep_expired_cache.py", "--loop"]
+    environment:
+      QDRANT_URL: http://qdrant:6333
+    depends_on:
+      qdrant-setup:
+        condition: service_completed_successfully
+    restart: unless-stopped
 
 volumes:
   qdrant-data:

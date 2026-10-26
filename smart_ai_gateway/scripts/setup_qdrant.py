@@ -6,6 +6,7 @@ from qdrant_client import QdrantClient, models
 # Make "smart_ai_gateway" importable when this file is run directly as a script
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from smart_ai_gateway.config import get_settings  # noqa: E402
+from smart_ai_gateway.services import cache_aging  # noqa: E402
 
 # Settings come from smart_ai_gateway/gateway.config
 _cfg = get_settings().semantic_cache
@@ -26,6 +27,11 @@ if not client.collection_exists(COLLECTION_NAME):
 
 else:
     print(f"Collection {COLLECTION_NAME} already exists.")
+
+# Index the timestamps the cache-aging filters use. Runs on existing collections too,
+# so a collection created before aging existed gets its indexes on the next start.
+for field in cache_aging.ensure_indexes(client, COLLECTION_NAME):
+    print(f"Created payload index on {field}.")
 
 # Verify the collection
 collection = client.get_collection(COLLECTION_NAME)

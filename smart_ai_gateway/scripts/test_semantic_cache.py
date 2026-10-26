@@ -1,5 +1,6 @@
 
 import sys
+import time
 from pathlib import Path
 
 from sentence_transformers import SentenceTransformer
@@ -8,10 +9,12 @@ from qdrant_client import QdrantClient, models
 # Make "smart_ai_gateway" importable when this file is run directly as a script
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from smart_ai_gateway.config import get_settings  # noqa: E402
+from smart_ai_gateway.services import cache_aging  # noqa: E402
 
 # Settings come from smart_ai_gateway/gateway.config
 _cfg = get_settings().semantic_cache
-SIMILARITY_THRESHOLD = _cfg.similarity_threshold
+# The lowest score the gateway considers; it then also runs rule checks and the verifier
+CANDIDATE_THRESHOLD = _cfg.verify_threshold
 QDRANT_URL = _cfg.qdrant_url
 COLLECTION_NAME = _cfg.collection_name
 
@@ -53,7 +56,9 @@ client.upsert(
             vector=original_embedding, # the numerical embedding
             payload={
                 "prompt": original_prompt,
-                "response": cached_answer
+                "response": cached_answer,
+                # Timestamps and model tags; without them the point counts as expired
+                **cache_aging.entry_fields(_cfg, time.time(), get_settings().llm.answered_by)
             }
         )
     ],
@@ -86,9 +91,9 @@ for prompt in test_prompts:
         with_payload=True
     )
 
-    if (results.points and results.points[0].score >= SIMILARITY_THRESHOLD):
+    if (results.points and results.points[0].score >= CANDIDATE_THRESHOLD):
         match = results.points[0]
-        print("CACHE HIT!")
+        print("CACHE CANDIDATE! (the gateway confirms it with rule checks and the verifier)")
         print("Matched prompt:", match.payload["prompt"])
         print("Similarity score:", round(match.score, 4))
         print("Cached answer:", match.payload["response"])

@@ -1,6 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources: [namespace.yaml, qdrant.yaml, gateway.yaml]
+resources: [namespace.yaml, qdrant.yaml, gateway.yaml, cache-sweep.yaml]
 
 # The single settings file of the app becomes a ConfigMap mounted in every gateway pod.
 # It lives outside k8s/, so build with:
