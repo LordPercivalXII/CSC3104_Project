@@ -2,12 +2,13 @@
 Redis versions of the fair queue and job store, shared by all gateway pods.
 
 Keys: sched:queue:<user>, sched:rotation, sched:pending,
-      sched:job:<request_id>, sched:results:<instance>
+      sched:job:<request_id>, sched:results:<instance>, sched:ratelimit
 
 Queue keys never expire, so Redis must use maxmemory-policy volatile-lru.
 The client must be created with decode_responses=True.
 """
 import json
+import uuid
 
 JOB_TTL_SECONDS = 3600
 RESULT_TTL_SECONDS = 300
@@ -55,6 +56,25 @@ if redis.call('HGET', KEYS[1], 'status') == ARGV[1] then
     return 1
 end
 return 0
+"""
+
+
+RATE_LIMIT_SCRIPT = """
+-- KEYS: sorted set of recent call times
+-- ARGV: limit, window (ms), unique id for this call
+local t = redis.call('TIME')
+local now = t[1] * 1000 + math.floor(t[2] / 1000)
+local window = tonumber(ARGV[2])
+
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now - window)
+if redis.call('ZCARD', KEYS[1]) < tonumber(ARGV[1]) then
+    redis.call('ZADD', KEYS[1], now, ARGV[3])
+    redis.call('PEXPIRE', KEYS[1], window)
+    return 0
+end
+
+local oldest = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')
+return tonumber(oldest[2]) + window - now
 """
 
 
@@ -160,3 +180,25 @@ class RedisJobStore:
         if "error" in message:
             message["error"] = RemoteInferenceError(message["error"])
         return message
+
+
+class RedisRateLimiter:
+    """Same method as MemoryRateLimiter, one limit shared by all pods."""
+
+    def __init__(self, redis_client, limit, window_seconds=60, prefix="sched:"):
+        self.limit = limit
+        self.window_ms = int(window_seconds * 1000)
+        self.key = f"{prefix}ratelimit"
+
+        self._acquire = redis_client.register_script(RATE_LIMIT_SCRIPT)
+
+    def try_acquire(self):
+        """Take a slot if one is free.
+
+        Returns 0 if a slot was taken, otherwise the seconds until one frees up.
+        """
+        wait_ms = self._acquire(
+            keys=[self.key],
+            args=[self.limit, self.window_ms, uuid.uuid4().hex],
+        )
+        return int(wait_ms) / 1000

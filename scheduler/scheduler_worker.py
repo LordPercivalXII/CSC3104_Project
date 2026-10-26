@@ -17,9 +17,12 @@ IDLE_POLL_SECONDS = 0.5
 # How long the result listener waits for a result before looping
 RESULT_POLL_SECONDS = 1
 
+# Longest a rate-limited worker sleeps before checking again
+RATE_LIMIT_POLL_SECONDS = 1
+
 
 class SchedulerWorker:
-    def __init__(self, inference_fn=None, scheduler=None, job_store=None, num_workers=1):
+    def __init__(self, inference_fn=None, scheduler=None, job_store=None, num_workers=1,rate_limiter=None):
         # Assign inference function if there is no actual inference, use mock inference.
         self.inference_fn = (
             inference_fn if inference_fn is not None else self._mock_inference
@@ -29,6 +32,9 @@ class SchedulerWorker:
         # to share the queue and job statuses between pods.
         self.scheduler = scheduler if scheduler is not None else FairShareScheduler()
         self.job_store = job_store if job_store is not None else MemoryJobStore()
+
+        # Limits how many LLM calls start per minute. None means no limit.
+        self.rate_limiter = rate_limiter
 
         # Number of requests this instance processes at the same time.
         # 0 means it only accepts requests and other pods process them.
@@ -119,9 +125,7 @@ class SchedulerWorker:
                 time.sleep(1)
 
     def _process_next(self):
-        result = self.scheduler.get_next_request()
-
-        if result is None:
+        if self.scheduler.pending_count() == 0:
             self.new_request.clear()
 
             # Recheck after clearing to avoid
@@ -129,6 +133,20 @@ class SchedulerWorker:
             if self.scheduler.pending_count() == 0:
                 self.new_request.wait(timeout=IDLE_POLL_SECONDS)
 
+            return
+
+        # Take a rate-limit slot before choosing a request, so the fair
+        # choice is made when the LLM call can actually start
+        if self.rate_limiter is not None:
+            wait = self.rate_limiter.try_acquire()
+            if wait > 0:
+                time.sleep(min(wait, RATE_LIMIT_POLL_SECONDS))
+                return
+
+        result = self.scheduler.get_next_request()
+
+        # Another worker took it first
+        if result is None:
             return
 
         user_id, request = result
