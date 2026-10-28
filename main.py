@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
-from scheduler.scheduler_worker import SchedulerWorker
+from scheduler.factory import create_scheduler_worker
+from scheduler.redis_backend import RemoteInferenceError
 
 from pathlib import Path
 # This annotated thing is a tool in Python's typing module used to add extra, custom metadata to type hints.
@@ -17,7 +18,8 @@ from smart_ai_gateway.services.llm import LLMUnavailable, generate_answer, sourc
 from starlette.concurrency import run_in_threadpool
 
 # The LLM ([llm] in gateway.config) answers cache misses, one request at a time in fair-share order
-scheduler_worker = SchedulerWorker(inference_fn=generate_answer)
+# SCHEDULER_BACKEND=redis shares one queue between all gateway pods (see scheduler/factory.py)
+scheduler_worker = create_scheduler_worker(inference_fn=generate_answer)
 
 
 async def wait_for_llm(future):
@@ -26,7 +28,8 @@ async def wait_for_llm(future):
     """
     try:
         return await asyncio.wrap_future(future)
-    except LLMUnavailable as exc:
+    # RemoteInferenceError: the LLM call failed on another pod (redis mode)
+    except (LLMUnavailable, RemoteInferenceError) as exc:
         print(f"LLM unavailable: {exc}")
         raise HTTPException(
             status_code=503,
