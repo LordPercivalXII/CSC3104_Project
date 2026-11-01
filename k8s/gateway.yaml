@@ -45,6 +45,10 @@ spec:
           env:
             - {name: QDRANT_URL, value: "http://qdrant:6333"}   # overrides qdrant_url in gateway.config
             - {name: GATEWAY_CONFIG, value: /etc/gateway/gateway.config}   # every other setting comes from the ConfigMap
+            # Fair-share scheduler (scheduler/factory.py): one queue and one LLM rate limit for all pods
+            - {name: SCHEDULER_BACKEND, value: redis}
+            - {name: REDIS_URL, value: "redis://redis:6379/0"}
+            - {name: LLM_RATE_LIMIT_PER_MINUTE, value: "10"}   # all pods together; keep below your Gemini requests-per-minute
             - name: GEMINI_API_KEY             # Secret created by up.sh from .env; never committed
               valueFrom:
                 secretKeyRef: {name: gemini-api-key, key: GEMINI_API_KEY, optional: true}

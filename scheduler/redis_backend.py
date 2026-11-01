@@ -191,12 +191,13 @@ class RedisJobStore:
 
 
 class RedisRateLimiter:
-    """Same method as MemoryRateLimiter, one limit shared by all pods."""
+    """Same methods as MemoryRateLimiter, one limit shared by all pods."""
 
     def __init__(self, redis_client, limit, window_seconds=60, prefix="sched:"):
         self.limit = limit
         self.window_ms = int(window_seconds * 1000)
         self.key = f"{prefix}ratelimit"
+        self.redis = redis_client
 
         self._acquire = redis_client.register_script(RATE_LIMIT_SCRIPT)
 
@@ -210,3 +211,11 @@ class RedisRateLimiter:
             args=[self.limit, self.window_ms, uuid.uuid4().hex],
         )
         return int(wait_ms) / 1000
+
+    def release(self):
+        """Give back a slot that was taken but not used for an LLM call.
+
+        Removes the newest slot. Slots are interchangeable, so this keeps the
+        count right even if another pod took one a moment later.
+        """
+        self.redis.zpopmax(self.key)

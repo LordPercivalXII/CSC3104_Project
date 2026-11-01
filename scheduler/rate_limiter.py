@@ -1,7 +1,7 @@
 """
 In-memory rate limiter for LLM calls inside one process.
 
-RedisRateLimiter (redis_backend.py) has the same method and shares one
+RedisRateLimiter (redis_backend.py) has the same methods and shares one
 limit across all pods.
 """
 import threading
@@ -37,3 +37,9 @@ class MemoryRateLimiter:
                 return 0
 
             return self.calls[0] + self.window_seconds - now
+
+    def release(self):
+        """Give back a slot that was taken but not used for an LLM call."""
+        with self.lock:
+            if self.calls:
+                self.calls.pop()

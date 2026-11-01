@@ -72,6 +72,12 @@ class TestMemoryRateLimiter(unittest.TestCase):
         time.sleep(0.25)
         self.assertEqual(limiter.try_acquire(), 0)
 
+    def test_release_gives_the_slot_back(self):
+        limiter = MemoryRateLimiter(limit=1, window_seconds=WINDOW)
+        limiter.try_acquire()
+        limiter.release()
+        self.assertEqual(limiter.try_acquire(), 0)
+
 
 class RedisTestCase(unittest.TestCase):
 
@@ -126,6 +132,12 @@ class TestRedisRateLimiter(RedisTestCase):
         time.sleep(0.25)
         self.assertEqual(limiter.try_acquire(), 0)
 
+    def test_release_gives_the_slot_back(self):
+        pod1, pod2 = self.make_limiter(1), self.make_limiter(1)
+        pod1.try_acquire()
+        pod1.release()
+        self.assertEqual(pod2.try_acquire(), 0)
+
     def test_key_expires_when_idle(self):
         self.make_limiter(1).try_acquire()
         self.assertGreater(self.redis.pttl(f"{self.prefix}ratelimit"), 0)
@@ -179,6 +191,24 @@ class TestWorkerWithRateLimit(RedisTestCase):
 
         # B still gets the second turn even though everyone was waiting on the limit
         self.assertEqual(llm.users, ["A", "B", "A", "A", "A"])
+
+    def test_skipped_request_gives_its_slot_back(self):
+        # A cancelled request is skipped without an LLM call, so the next
+        # request must not wait for the window to pass
+        llm = StartTimes()
+        pod = self.make_pod(llm, self.make_limiter(1, window=5))
+
+        pod.running = True
+        pod.submit("A", "A1").cancel()
+        future = pod.submit("B", "B1")
+        pod.running = False
+
+        start = time.monotonic()
+        pod.start()
+        future.result(timeout=10)
+
+        self.assertLess(time.monotonic() - start, 2)
+        self.assertEqual(llm.users, ["B"])
 
     def test_memory_mode_limit(self):
         llm = StartTimes()

@@ -147,6 +147,7 @@ class SchedulerWorker:
 
         # Another worker took it first
         if result is None:
+            self._release_slot()
             return
 
         user_id, request = result
@@ -154,6 +155,7 @@ class SchedulerWorker:
 
         # Skip requests the caller already cancelled
         if not self.job_store.claim(request_id):
+            self._release_slot()
             return
 
         try:
@@ -181,6 +183,11 @@ class SchedulerWorker:
 
         # Send the result to the instance whose caller is waiting for it
         self.job_store.publish_result(request["reply_to"], message)
+
+    def _release_slot(self):
+        # The slot was taken but no LLM call follows, so another worker can use it
+        if self.rate_limiter is not None:
+            self.rate_limiter.release()
 
     def _result_loop(self):
         while self.running:

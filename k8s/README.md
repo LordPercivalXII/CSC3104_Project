@@ -1,14 +1,16 @@
 # Kubernetes (kind) deployment
 
-3 gateway pods behind a Service, plus one Qdrant pod with a volume, and an hourly CronJob that
-deletes aged-out cache entries.
+3 gateway pods behind a Service, plus one Qdrant pod and one Redis pod (each with a volume), and an
+hourly CronJob that deletes aged-out cache entries.
 
-    Browser -> Service (NodePort 30080 -> http://localhost:8080) -> 3-6 gateway pods -> Qdrant
+    Browser -> Service (NodePort 30080 -> http://localhost:8080) -> 3-6 gateway pods -> Qdrant (semantic cache)
+                                                                                     -> Redis  (fair-share queue, LLM rate limit)
 
 Run from WSL (these are bash scripts), with Docker Desktop running and kind + kubectl installed:
 
     k8s/up.sh      # create the cluster, build the image, deploy
     k8s/test.sh    # pods, load balancing, shared cache, self-healing, config, cache aging
+    k8s/test-scheduler.sh   # shared fair queue, shared LLM rate limit, Redis restart (mock LLM, ~10 min)
     k8s/down.sh    # delete the cluster
 
 Then open http://localhost:8080. The first build is slow; give Docker at least ~6 GB of memory,
@@ -26,11 +28,31 @@ makes about 7 LLM calls per run.
 |---|---|
 | `gateway.yaml` | Deployment (3 pods), Service (NodePort), autoscaler (3-6), disruption budget |
 | `qdrant.yaml` | Qdrant StatefulSet with a 2Gi volume, and its Service |
+| `redis.yaml` | Redis StatefulSet with a 1Gi volume, and its Service: the scheduler's shared queue and rate limit |
 | `cache-sweep.yaml` | Hourly CronJob that deletes expired semantic-cache entries |
 | `namespace.yaml` | The `llm-gateway` namespace |
 | `kustomization.yaml` | Ties the files together and builds the ConfigMap from `gateway.config` |
 | `kind-config.yaml` | Local cluster: 1 control-plane + 2 workers, port 8080 -> 30080 |
 | `up.sh` / `test.sh` / `down.sh` | Create and deploy / check everything / delete the cluster |
+| `test-scheduler.sh` | Checks the shared fair queue, the shared rate limit and a Redis restart |
+
+## Scheduler: one fair queue for all pods
+
+Cache misses wait in a fair-share queue (each employee takes turns) before the LLM is called. In
+Kubernetes the queue lives in Redis, so all gateway pods share one queue and one LLM rate limit;
+with a queue per pod, fairness and the limit would only hold inside each pod. Set in `gateway.yaml`:
+
+| Variable | Value | Meaning |
+|---|---|---|
+| `SCHEDULER_BACKEND` | `redis` | `memory` = a queue per pod (the default outside Kubernetes) |
+| `REDIS_URL` | `redis://redis:6379/0` | The Redis Service |
+| `LLM_RATE_LIMIT_PER_MINUTE` | `10` | LLM calls per minute for all pods together; `0` = no limit. Keep it below the Gemini free-tier requests per minute, which are per Google project and shared by every pod |
+| `SCHEDULER_WORKERS` | not set (1) | LLM calls each pod makes at the same time |
+
+Redis runs with `appendonly yes` (queued requests survive a restart) and `maxmemory-policy volatile-lru`
+(when full it only evicts job statuses and results, never the queue). If Redis is down, cache hits still
+work and the gateway pods stay up; cache misses fail until Redis is back, and the pods reconnect by
+themselves (`test-scheduler.sh` step 3).
 
 ## Settings: the ConfigMap
 
@@ -69,20 +91,21 @@ file from outside `k8s/` unless you pass that flag. `up.sh` already uses it.)
 
 ## Checking it
 
-    kubectl -n llm-gateway get pods -o wide      # 3 gateway pods + qdrant-0, and which node each is on
+    kubectl -n llm-gateway get pods -o wide      # 3 gateway pods + qdrant-0 + redis-0, and which node each is on
     kubectl -n llm-gateway logs -l app=gateway --prefix --tail=20
     k8s/test.sh                                  # step 6 prints the threshold each pod is using
 
 ## Notes
 
-- Fair share is per pod: each replica has its own queue, while the semantic cache in Qdrant is shared.
+- Fair share covers all pods: they take turns from one queue in Redis, like the semantic cache in Qdrant.
 - Each pod sends one LLM request at a time, in fair-share order. With `provider = mock` answers are
-  instant, so the queue order cannot be seen from outside; with Gemini, send requests from two users at
-  once and watch the `Processing request` log lines.
+  instant, so the queue order cannot be seen from outside unless the rate limit holds requests back
+  (`test-scheduler.sh` does this); with Gemini, send requests from two users at once and watch the
+  `Processing request` log lines.
 - A Gemini failure (rate limit, timeout, blocked prompt) returns HTTP 503 and nothing is cached.
 - `/health` only says the app is up. The readiness probe is what also checks Qdrant.
 - The semantic cache is shared by everyone: there is no per-user or per-team separation.
 - Cache entries age out (aging settings in `smart_ai_gateway/gateway.config`). Expired entries are never
   served: the gateway filters them out in Qdrant. The `cache-sweep` CronJob deletes them hourly to free
   storage; run it now with `kubectl -n llm-gateway create job --from=cronjob/cache-sweep cache-sweep-now`.
-- Qdrant is a single pod without authentication: fine for a demo, not for production.
+- Qdrant and Redis are single pods without authentication: fine for a demo, not for production.

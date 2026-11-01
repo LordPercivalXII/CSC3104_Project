@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create (or update) the local kind cluster: 3 gateway pods + Qdrant.
+# Create (or update) the local kind cluster: 3 gateway pods + Qdrant + Redis.
 set -euo pipefail
 cd "$(dirname "$0")/.."          # repo root
 CLUSTER=llm-gateway
@@ -24,7 +24,7 @@ if [ -z "${GEMINI_API_KEY:-}" ] && [ -f .env ]; then
   set -a; . ./.env; set +a
 fi
 GEMINI_API_KEY=${GEMINI_API_KEY:-}
-GEMINI_API_KEY=${GEMINI_API_KEY%$''}   # .env saved with Windows line endings
+GEMINI_API_KEY=${GEMINI_API_KEY%$'\r'}   # .env saved with Windows line endings
 if [ -n "$GEMINI_API_KEY" ]; then
   kubectl -n $NS create secret generic gemini-api-key --from-literal=GEMINI_API_KEY="$GEMINI_API_KEY"     --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 else
@@ -34,5 +34,6 @@ fi
 
 kubectl -n $NS rollout restart deploy/gateway >/dev/null   # pick up a rebuilt image and the key
 kubectl -n $NS rollout status sts/qdrant --timeout=180s
+kubectl -n $NS rollout status sts/redis --timeout=180s
 kubectl -n $NS rollout status deploy/gateway --timeout=300s
 echo "Ready: http://localhost:8080  (try k8s/test.sh)"
