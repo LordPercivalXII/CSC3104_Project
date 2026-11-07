@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Checks the fair-share scheduler across pods: one shared queue, one shared LLM rate limit,
-# and recovery when Redis restarts.
+# one LLM call for duplicate questions, and recovery when Redis restarts.
 #
 # Switches the gateway to the mock LLM (no Gemini quota used) with a limit of 2 LLM calls per
 # minute, runs the checks, then puts the previous settings back. Takes about 5-10 minutes,
@@ -38,6 +38,17 @@ send() {
   echo $(( ($(date +%s%N) - T0) / 1000000000 )) > "$OUT/$1.s"
 }
 secs() { cat "$OUT/$1.s"; }
+
+# ask <name> <user> <question>: one request to /chat (cache + scheduler), response saved
+ask() {
+  curl -s -X POST "$URL/chat" -H 'Content-Type: application/json' \
+    -d "{\"user_id\":\"$2\",\"prompt\":\"$3\"}" > "$OUT/$1.json"
+}
+
+# Number of LLM calls made so far by all gateway pods
+llm_calls() {
+  kubectl -n $NS logs -l app=gateway --tail=-1 2>/dev/null | grep -c 'Processing request'
+}
 
 # Pod whose worker processed a request (from its "Processing request <id>" log line)
 processed_by() {
@@ -118,7 +129,24 @@ PODS=$(for name in W1 W2 A1 A2 A3 B1; do processed_by $name; done | sort -u | wc
 echo "   (requests were processed by $PODS different pod(s); all pods take from the same queue)"
 
 echo
-echo "== 3. Redis restart: the gateway keeps running and recovers by itself"
+echo "== 3. Duplicate questions: 5 people ask the same new question at the same time (about 1 minute)"
+echo "   Step 2 used up this minute's calls, so all 5 arrive while the first one waits its turn."
+echo "   Expected: 1 LLM call; the other 4 share its answer and are not cached again."
+QUESTION="How do I request access to project $(date +%s)?"
+BEFORE=$(llm_calls)
+for i in 1 2 3 4 5; do ask "D$i" "dup-user$i" "$QUESTION" & done
+wait
+CALLS=$(( $(llm_calls) - BEFORE ))
+# Count files, not lines: each response is one JSON line without a newline at the end
+ANSWERED=$(grep -l '"response"' "$OUT"/D?.json | wc -l)
+SHARED=$(grep -l '"coalesced":true' "$OUT"/D?.json | wc -l)
+echo "   $ANSWERED answered, $SHARED shared an answer, $CALLS LLM call(s)"
+[ "$ANSWERED" -eq 5 ] && pass "all 5 people got an answer" || fail "only $ANSWERED of 5 got an answer"
+[ "$CALLS" -eq 1 ] && pass "only 1 LLM call for 5 identical questions" || fail "$CALLS LLM calls for 5 identical questions"
+[ "$SHARED" -eq 4 ] && pass "4 answers were shared from that call" || fail "$SHARED answers were shared, expected 4"
+
+echo
+echo "== 4. Redis restart: the gateway keeps running and recovers by itself"
 RESTARTS_BEFORE=$(kubectl -n $NS get pods -l app=gateway -o jsonpath='{.items[*].status.containerStatuses[0].restartCount}')
 redis set sched:test:persist ok >/dev/null           # no TTL, so it must survive on the volume
 kubectl -n $NS delete pod redis-0 >/dev/null

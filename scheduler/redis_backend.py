@@ -2,7 +2,8 @@
 Redis versions of the fair queue and job store, shared by all gateway pods.
 
 Keys: sched:queue:<user>, sched:rotation, sched:pending,
-      sched:job:<request_id>, sched:results:<instance>, sched:ratelimit
+      sched:job:<request_id>, sched:results:<instance>, sched:ratelimit,
+      sched:inflight:<question hash>, sched:waiters:<leader request_id>
 
 Queue keys never expire, so Redis must use maxmemory-policy volatile-lru.
 The client must be created with decode_responses=True.
@@ -12,6 +13,10 @@ import uuid
 
 JOB_TTL_SECONDS = 3600
 RESULT_TTL_SECONDS = 300
+
+# How long a question counts as "being answered". Only matters if the pod
+# making the call dies: duplicates arriving after this lead a new call.
+INFLIGHT_TTL_SECONDS = 300
 
 
 # Lua scripts run atomically in Redis, replacing threading.Lock across pods.
@@ -56,6 +61,53 @@ if redis.call('HGET', KEYS[1], 'status') == ARGV[1] then
     return 1
 end
 return 0
+"""
+
+
+# Request coalescing: identical questions asked at the same time share one
+# LLM call. The first becomes the leader; the rest wait for its answer.
+JOIN_OR_LEAD_SCRIPT = """
+-- KEYS: in-flight key for this question
+-- ARGV: request id, waiter JSON, in-flight ttl, waiters key prefix, waiters ttl
+local leader = redis.call('GET', KEYS[1])
+if not leader then
+    redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[3])
+    return false
+end
+
+local waiters = ARGV[4] .. leader
+redis.call('RPUSH', waiters, ARGV[2])
+redis.call('EXPIRE', waiters, ARGV[5])
+return leader
+"""
+
+FINISH_SCRIPT = """
+-- KEYS: in-flight key, this leader's waiters list
+-- ARGV: leader request id
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+    redis.call('DEL', KEYS[1])
+end
+local waiters = redis.call('LRANGE', KEYS[2], 0, -1)
+redis.call('DEL', KEYS[2])
+return waiters
+"""
+
+# A leader is only cancelled if nobody is waiting for its answer
+CANCEL_LEADER_SCRIPT = """
+-- KEYS: job hash, in-flight key, this leader's waiters list
+-- ARGV: leader request id, job ttl
+if redis.call('LLEN', KEYS[3]) > 0 then
+    return 0
+end
+if redis.call('HGET', KEYS[1], 'status') ~= 'PENDING' then
+    return 0
+end
+redis.call('HSET', KEYS[1], 'status', 'CANCELLED')
+redis.call('EXPIRE', KEYS[1], ARGV[2])
+if redis.call('GET', KEYS[2]) == ARGV[1] then
+    redis.call('DEL', KEYS[2])
+end
+return 1
 """
 
 
@@ -127,8 +179,13 @@ class RedisJobStore:
         self.redis = redis_client
         self.job_prefix = f"{prefix}job:"
         self.results_prefix = f"{prefix}results:"
+        self.inflight_prefix = f"{prefix}inflight:"
+        self.waiters_prefix = f"{prefix}waiters:"
 
         self._transition = redis_client.register_script(TRANSITION_SCRIPT)
+        self._join_or_lead = redis_client.register_script(JOIN_OR_LEAD_SCRIPT)
+        self._finish = redis_client.register_script(FINISH_SCRIPT)
+        self._cancel_leader = redis_client.register_script(CANCEL_LEADER_SCRIPT)
 
     def create(self, request_id, user_id):
         key = self.job_prefix + request_id
@@ -141,9 +198,24 @@ class RedisJobStore:
         """PENDING -> PROCESSING. False if the caller already cancelled."""
         return self._change(request_id, "PENDING", "PROCESSING")
 
-    def cancel(self, request_id):
-        """PENDING -> CANCELLED. False if it is already being processed."""
-        return self._change(request_id, "PENDING", "CANCELLED")
+    def cancel(self, request_id, dedup_key=None):
+        """PENDING -> CANCELLED. False if it is already being processed.
+
+        A leader (dedup_key given) is not cancelled while others wait for its
+        answer. Otherwise it stops leading, so the next duplicate leads itself.
+        """
+        if dedup_key is None:
+            return self._change(request_id, "PENDING", "CANCELLED")
+
+        cancelled = self._cancel_leader(
+            keys=[
+                self.job_prefix + request_id,
+                self.inflight_prefix + dedup_key,
+                self.waiters_prefix + request_id,
+            ],
+            args=[request_id, JOB_TTL_SECONDS],
+        )
+        return cancelled == 1
 
     def _change(self, request_id, expected, new):
         changed = self._transition(
@@ -151,6 +223,25 @@ class RedisJobStore:
             args=[expected, new, JOB_TTL_SECONDS],
         )
         return changed == 1
+
+    def join_or_lead(self, dedup_key, request_id, waiter):
+        """Lead the LLM call for dedup_key, or wait for the current leader.
+
+        Returns None if this request leads, otherwise the leader's request ID.
+        """
+        return self._join_or_lead(
+            keys=[self.inflight_prefix + dedup_key],
+            args=[request_id, json.dumps(waiter), INFLIGHT_TTL_SECONDS,
+                  self.waiters_prefix, JOB_TTL_SECONDS],
+        )
+
+    def finish(self, dedup_key, request_id):
+        """Stop leading and return the requests waiting for this answer."""
+        waiters = self._finish(
+            keys=[self.inflight_prefix + dedup_key, self.waiters_prefix + request_id],
+            args=[request_id],
+        )
+        return [json.loads(waiter) for waiter in waiters]
 
     def set_status(self, request_id, status):
         key = self.job_prefix + request_id

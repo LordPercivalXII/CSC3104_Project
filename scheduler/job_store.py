@@ -18,6 +18,12 @@ class MemoryJobStore:
         # reply_to -> queue of finished results waiting to be picked up
         self.results = {}
 
+        # Duplicate requests that wait for one LLM call (request coalescing)
+        # dedup key -> request ID of the leader making the call
+        self.inflight = {}
+        # leader request ID -> [{"request_id", "user_id", "reply_to"}]
+        self.waiters = {}
+
         # Worker threads and request threads both use these dicts
         self.lock = threading.Lock()
 
@@ -36,20 +42,55 @@ class MemoryJobStore:
         """PENDING -> PROCESSING. False if the caller already cancelled."""
         return self._change(request_id, "PENDING", "PROCESSING")
 
-    def cancel(self, request_id):
-        """PENDING -> CANCELLED. False if it is already being processed."""
-        return self._change(request_id, "PENDING", "CANCELLED")
+    def cancel(self, request_id, dedup_key=None):
+        """PENDING -> CANCELLED. False if it is already being processed.
+
+        A leader (dedup_key given) is not cancelled while others wait for its
+        answer. Otherwise it stops leading, so the next duplicate leads itself.
+        """
+        with self.lock:
+            if dedup_key is not None and self.waiters.get(request_id):
+                return False
+
+            cancelled = self._change_locked(request_id, "PENDING", "CANCELLED")
+            if cancelled and self.inflight.get(dedup_key) == request_id:
+                del self.inflight[dedup_key]
+            return cancelled
 
     def _change(self, request_id, expected, new):
         # Check and update under one lock so no other thread can change
         # the status in between
         with self.lock:
-            job = self.jobs.get(request_id)
-            if job is None or job["status"] != expected:
-                return False
+            return self._change_locked(request_id, expected, new)
 
-            job["status"] = new
-            return True
+    def _change_locked(self, request_id, expected, new):
+        job = self.jobs.get(request_id)
+        if job is None or job["status"] != expected:
+            return False
+
+        job["status"] = new
+        return True
+
+    def join_or_lead(self, dedup_key, request_id, waiter):
+        """Lead the LLM call for dedup_key, or wait for the current leader.
+
+        Returns None if this request leads, otherwise the leader's request ID.
+        """
+        with self.lock:
+            leader = self.inflight.get(dedup_key)
+            if leader is None:
+                self.inflight[dedup_key] = request_id
+                return None
+
+            self.waiters.setdefault(leader, []).append(waiter)
+            return leader
+
+    def finish(self, dedup_key, request_id):
+        """Stop leading and return the requests waiting for this answer."""
+        with self.lock:
+            if self.inflight.get(dedup_key) == request_id:
+                del self.inflight[dedup_key]
+            return self.waiters.pop(request_id, [])
 
     def set_status(self, request_id, status):
         with self.lock:

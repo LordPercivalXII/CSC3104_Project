@@ -138,15 +138,18 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         }
 
     # Queue the cache miss and wait without blocking other HTTP requests.
+    # Cacheable questions asked at the same time share one LLM call.
     future = scheduler_worker.submit(
         request.user_id,
         user_prompt,
+        dedup=skip_reason is None,
     )
     result = await wait_for_llm(future)
     answer = result["response"]
+    coalesced = result.get("coalesced", False)
 
-    # Store only successfully generated answers.
-    if skip_reason is None:
+    # Store only successfully generated answers, once per LLM call.
+    if skip_reason is None and not coalesced:
         await run_in_threadpool(
             store_cache,
             prompt=user_prompt,
@@ -159,6 +162,7 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         "source": source_name(),
         "similarity_score": None,
         "cache_skipped": skip_reason,
+        "coalesced": coalesced,
         "request_id": result["request_id"],
     }
 

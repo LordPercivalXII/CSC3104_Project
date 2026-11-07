@@ -10,7 +10,7 @@ Run from WSL (these are bash scripts), with Docker Desktop running and kind + ku
 
     k8s/up.sh      # create the cluster, build the image, deploy
     k8s/test.sh    # pods, load balancing, shared cache, self-healing, config, cache aging
-    k8s/test-scheduler.sh   # shared fair queue, shared LLM rate limit, Redis restart (mock LLM, ~10 min)
+    k8s/test-scheduler.sh   # shared fair queue, shared LLM rate limit, duplicate questions, Redis restart (mock LLM, ~10 min)
     k8s/down.sh    # delete the cluster
 
 Then open http://localhost:8080. The first build is slow; give Docker at least ~6 GB of memory,
@@ -34,7 +34,7 @@ makes about 7 LLM calls per run.
 | `kustomization.yaml` | Ties the files together and builds the ConfigMap from `gateway.config` |
 | `kind-config.yaml` | Local cluster: 1 control-plane + 2 workers, port 8080 -> 30080 |
 | `up.sh` / `test.sh` / `down.sh` | Create and deploy / check everything / delete the cluster |
-| `test-scheduler.sh` | Checks the shared fair queue, the shared rate limit and a Redis restart |
+| `test-scheduler.sh` | Checks the shared fair queue, the shared rate limit, duplicate questions and a Redis restart |
 
 ## Scheduler: one fair queue for all pods
 
@@ -48,6 +48,11 @@ with a queue per pod, fairness and the limit would only hold inside each pod. Se
 | `REDIS_URL` | `redis://redis:6379/0` | The Redis Service |
 | `LLM_RATE_LIMIT_PER_MINUTE` | `10` | LLM calls per minute for all pods together; `0` = no limit. Keep it below the Gemini free-tier requests per minute, which are per Google project and shared by every pod |
 | `SCHEDULER_WORKERS` | not set (1) | LLM calls each pod makes at the same time |
+| `SCHEDULER_COALESCE` | not set (`true`) | Identical questions asked at the same time share one LLM call; `false` turns it off |
+
+Duplicate questions: when several people ask the same question (ignoring case and spacing) while
+it is still waiting or being answered, only the first takes a queue turn and an LLM call; the others
+get the same answer, and it is cached once. Reworded questions are left to the semantic cache.
 
 Redis runs with `appendonly yes` (queued requests survive a restart) and `maxmemory-policy volatile-lru`
 (when full it only evicts job statuses and results, never the queue). If Redis is down, cache hits still

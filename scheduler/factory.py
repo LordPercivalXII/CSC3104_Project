@@ -7,6 +7,8 @@ Builds the SchedulerWorker from environment variables.
     SCHEDULER_WORKERS          requests this pod processes at once (default 1)
     LLM_RATE_LIMIT_PER_MINUTE  max LLM calls started per minute, 0 = no limit (default).
                                Shared by all pods in redis mode, per pod in memory mode.
+    SCHEDULER_COALESCE         "true" (default): identical questions asked at the same
+                               time share one LLM call. "false" turns it off.
 """
 import os
 
@@ -18,12 +20,14 @@ def create_scheduler_worker(inference_fn=None):
     backend = os.getenv("SCHEDULER_BACKEND", "memory").lower()
     num_workers = int(os.getenv("SCHEDULER_WORKERS", "1"))
     rate_limit = int(os.getenv("LLM_RATE_LIMIT_PER_MINUTE", "0"))
+    coalesce = os.getenv("SCHEDULER_COALESCE", "true").lower() not in ("0", "false", "no", "off")
 
     if backend == "memory":
         return SchedulerWorker(
             inference_fn=inference_fn,
             num_workers=num_workers,
             rate_limiter=MemoryRateLimiter(rate_limit) if rate_limit > 0 else None,
+            coalesce=coalesce,
         )
 
     if backend == "redis":
@@ -47,6 +51,7 @@ def create_scheduler_worker(inference_fn=None):
                 RedisRateLimiter(client, rate_limit, prefix=prefix)
                 if rate_limit > 0 else None
             ),
+            coalesce=coalesce,
         )
 
     raise ValueError(

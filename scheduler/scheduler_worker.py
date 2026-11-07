@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import threading
 import time
@@ -22,7 +23,8 @@ RATE_LIMIT_POLL_SECONDS = 1
 
 
 class SchedulerWorker:
-    def __init__(self, inference_fn=None, scheduler=None, job_store=None, num_workers=1,rate_limiter=None):
+    def __init__(self, inference_fn=None, scheduler=None, job_store=None, num_workers=1,rate_limiter=None,
+                 coalesce=True):
         # Assign inference function if there is no actual inference, use mock inference.
         self.inference_fn = (
             inference_fn if inference_fn is not None else self._mock_inference
@@ -35,6 +37,9 @@ class SchedulerWorker:
 
         # Limits how many LLM calls start per minute. None means no limit.
         self.rate_limiter = rate_limiter
+
+        # Identical questions asked at the same time share one LLM call
+        self.coalesce = coalesce
 
         # Number of requests this instance processes at the same time.
         # 0 means it only accepts requests and other pods process them.
@@ -55,6 +60,9 @@ class SchedulerWorker:
         # result is matched back to them by request ID.
         self.jobs = {}
         self.jobs_lock = threading.Lock()
+
+        # request ID -> dedup key, for requests on this instance that lead a call
+        self.leading = {}
 
     @staticmethod
     # This is for a mock response from a LLM model. NOT REAL!
@@ -77,7 +85,15 @@ class SchedulerWorker:
         for thread in self.threads:
             thread.start()
 
-    def submit(self, user_id, prompt):
+    @staticmethod
+    def _dedup_key(prompt):
+        # Same question = same words, ignoring case and extra spaces
+        normalised = " ".join(prompt.casefold().split())
+        return hashlib.sha256(normalised.encode()).hexdigest()
+
+    def submit(self, user_id, prompt, dedup=False):
+        """Queue a prompt. With dedup=True, a prompt identical to one already
+        waiting or being answered shares that LLM call instead."""
         if not self.running:
             raise RuntimeError("Scheduler worker is not running")
 
@@ -95,11 +111,30 @@ class SchedulerWorker:
         # Status first, so a worker never sees a request without one
         self.job_store.create(request_id, user_id)
 
-        self.scheduler.add_request(user_id, {
+        request = {
             "request_id": request_id,
             "prompt": prompt,
             "reply_to": self.instance_id
-        })
+        }
+
+        if dedup and self.coalesce:
+            dedup_key = self._dedup_key(prompt)
+            leader = self.job_store.join_or_lead(dedup_key, request_id, {
+                "request_id": request_id,
+                "user_id": user_id,
+                "reply_to": self.instance_id,
+            })
+
+            # Another request is already getting this answer: wait for it
+            # without taking a queue turn or an LLM call
+            if leader is not None:
+                return future
+
+            with self.jobs_lock:
+                self.leading[request_id] = dedup_key
+            request["dedup_key"] = dedup_key
+
+        self.scheduler.add_request(user_id, request)
 
         # Tell the worker that work is available
         self.new_request.set()
@@ -109,11 +144,13 @@ class SchedulerWorker:
     def _on_future_done(self, request_id, future):
         with self.jobs_lock:
             self.jobs.pop(request_id, None)
+            dedup_key = self.leading.pop(request_id, None)
 
         # If the caller gave up while it was still queued, mark it so
-        # no worker on any pod wastes an LLM call on it
+        # no worker on any pod wastes an LLM call on it. A leader stays
+        # queued if others are waiting for its answer.
         if future.cancelled():
-            self.job_store.cancel(request_id)
+            self.job_store.cancel(request_id, dedup_key=dedup_key)
 
     def _process_loop(self):
         while self.running:
@@ -183,6 +220,29 @@ class SchedulerWorker:
 
         # Send the result to the instance whose caller is waiting for it
         self.job_store.publish_result(request["reply_to"], message)
+
+        if request.get("dedup_key") is not None:
+            self._answer_waiters(request["dedup_key"], request_id, message)
+
+    def _answer_waiters(self, dedup_key, request_id, message):
+        # Requests that joined this call get the same answer, sent to
+        # whichever pod each caller is waiting on
+        for waiter in self.job_store.finish(dedup_key, request_id):
+            waiter_id = waiter["request_id"]
+
+            if "error" in message:
+                self.job_store.set_status(waiter_id, "FAILED")
+                reply = {"request_id": waiter_id, "error": message["error"]}
+            else:
+                self.job_store.set_status(waiter_id, "COMPLETED")
+                reply = {"request_id": waiter_id, "response": {
+                    **message["response"],
+                    "user_id": waiter["user_id"],
+                    "request_id": waiter_id,
+                    "coalesced": True,
+                }}
+
+            self.job_store.publish_result(waiter["reply_to"], reply)
 
     def _release_slot(self):
         # The slot was taken but no LLM call follows, so another worker can use it
