@@ -29,3 +29,9 @@ Thumbs.db
 
 # Docker Compose local overrides
 compose.override.yaml
+
+# Gateway runtime logs (decision log, feedback log)
+/data/
+
+# Cost-benchmark generated output (regenerate with eval/cost/bench.py)
+eval/cost/results/

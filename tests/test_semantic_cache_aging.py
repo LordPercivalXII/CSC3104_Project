@@ -50,7 +50,9 @@ class CacheTestCase(unittest.TestCase):
         sc.verifier = None
         sc._answered_by = "test-llm"
         self.configure(ttl_seconds=100, sliding_ttl=False, max_age_seconds=0, decay_half_life_seconds=0,
-                       similarity_threshold=0.90, verify_threshold=0.90)
+                       similarity_threshold=0.90, verify_threshold=0.90,
+                       # Sweep other models' entries straight away (the grace period has its own tests)
+                       other_model_grace_seconds=0)
 
     def tearDown(self):
         sc.client, sc._cfg, sc.verifier, sc._answered_by = self._saved

@@ -79,11 +79,89 @@ class RuleCheckTest(unittest.TestCase):
     def test_opposite_words(self):
         self.assertIn("enable / disable", conflict("how do I disable 2FA", "how do I enable 2FA"))
         self.assertIn("install / uninstall", conflict("uninstalling Teams", "installing Teams"))
-        self.assertIn("on / off", conflict("my laptop won't turn off", "my laptop won't turn on"))
+        self.assertIn("enable / disable", conflict("my laptop won't turn off", "my laptop won't turn on"))
         self.assertIn("log in / log out", conflict("log out of the portal", "log in to the portal"))
 
     def test_both_opposites_in_one_prompt_is_fine(self):
         self.assertIsNone(conflict("how do I add or remove users", "how do I remove users"))
+
+    # Rule-layer fixes from the review (REVIEW.md C1-C7, C12, C13). Each test has the
+    # "must conflict" pairs first, then the "must not conflict" paraphrases.
+
+    def test_c1_turn_on_off_phrase(self):
+        self.assertIsNotNone(conflict("turn off notifications on my phone", "turn on notifications on my phone"))
+        self.assertIsNotNone(conflict("switch my laptop off", "switch my laptop on"))
+        # The preposition "on" alone is not an on/off switch
+        self.assertIsNone(conflict("notifications on my phone", "notifications on my phone"))
+        self.assertIsNone(conflict("turn on notifications on my phone", "enable notifications on my phone"))
+
+    def test_c2_more_opposite_pairs(self):
+        self.assertIn("upgrade / downgrade", conflict("upgrade to Windows 11", "downgrade to Windows 11"))
+        self.assertIn("paid / unpaid", conflict("can I take unpaid leave", "can I take paid leave"))
+        self.assertIn("grant / revoke", conflict("grant access to the folder", "revoke access to the folder"))
+        self.assertIn("pause / resume", conflict("pause the backup job", "resume the backup job"))
+        self.assertIn("send / receive", conflict("send a calendar invite", "receive a calendar invite"))
+        self.assertIn("send / receive", conflict("I sent an invite", "I receive an invite"))
+        self.assertIn("backup / restore", conflict("back up my files", "restore my files"))
+        self.assertIn("internal / external", conflict("book an internal meeting", "book an external meeting"))
+        self.assertIsNone(conflict("upgrade my laptop", "upgrade my laptop please"))
+
+    def test_c3_product_names(self):
+        self.assertIn("identifier", conflict("reset my Outlook password", "reset my Teams password"))
+        self.assertIn("identifier", conflict("meeting on Monday", "meeting on Friday"))
+        self.assertIsNone(conflict("reset my Outlook password", "how do I reset the password in Outlook"))
+        # Plurals of the same name match
+        self.assertIsNone(conflict("how do I connect to the VPN", "how do I connect to VPNs"))
+        self.assertIsNone(conflict("install Windows updates", "install Windows update"))
+
+    def test_c4_curly_apostrophe(self):
+        self.assertIn("negated", conflict("I can’t access the shared drive", "I can access the shared drive"))
+        self.assertIsNone(conflict("I can’t access the shared drive", "I can't access the shared drive"))
+
+    def test_c5_more_negations(self):
+        self.assertIn("negated", conflict("I have no access to the shared drive", "I have access to the shared drive"))
+        self.assertIn("negated", conflict("nobody can see the folder", "everybody can see the folder"))
+        self.assertIn("negated", conflict("neither printer works", "the printer works"))
+        self.assertIsNone(conflict("I have no access to the drive", "I do not have access to the drive"))
+
+    def test_c6_hyphenated_phrases(self):
+        self.assertIn("sign in / sign out", conflict("how do I sign-in to the portal", "how do I sign out of the portal"))
+        self.assertIsNone(conflict("how do I sign-in to the portal", "how do I sign in to the portal"))
+        self.assertIsNone(conflict("my e-mail is slow", "my email is slow"))
+        self.assertIsNone(conflict("the Wi-Fi keeps dropping", "the wifi keeps dropping"))
+
+    def test_c7_time_sensitive_words(self):
+        self.assertEqual(time_sensitive("who is the current IT manager"), "current")
+        self.assertEqual(time_sensitive("what is the newest laptop model"), "newest")
+        self.assertEqual(time_sensitive("any recent outages"), "recent")
+        self.assertIsNone(time_sensitive("how do I reset my password"))
+
+    def test_c12_number_order_for_short_prompts(self):
+        self.assertIn("order", conflict("move 5 to 10", "move 10 to 5"))
+        self.assertIsNone(conflict("move 5 to 10", "move 5 to 10"))
+        # A long prompt only compares which numbers appear
+        long_a = "I need to know whether the shared drive quota can change from 5 GB to 10 GB for my team"
+        long_b = "for my team I need to know whether the shared drive quota can go to 10 GB from 5 GB"
+        self.assertIsNone(conflict(long_a, long_b))
+
+    def test_c12_number_words(self):
+        self.assertIsNone(conflict("show the top three results", "show the top 3 results"))
+        self.assertIn("numbers", conflict("show the top three results", "show the top five results"))
+        # Whole words only, and "one" as a pronoun is not a number
+        self.assertIsNone(conflict("someone needs access", "someone needs access"))
+        self.assertIsNone(conflict("which one should I use", "which should I use"))
+        self.assertIn("numbers", conflict("wait ten minutes", "wait 5 minutes"))
+
+    def test_c13_two_factor_and_plurals(self):
+        self.assertIsNone(conflict("turn on 2FA", "enable two factor authentication"))
+        self.assertIsNone(conflict("set up MFA", "set up multi-factor authentication"))
+        self.assertIn("numbers", conflict("enable 2FA", "enable 3 factor"))
+
+    def test_c13_locked_state_vs_unlock_action(self):
+        self.assertIsNone(conflict("my account is locked", "unlock my account"))
+        self.assertIsNone(conflict("I'm locked out of my account", "how do I unlock my account"))
+        self.assertIn("lock / unlock", conflict("lock my screen", "unlock my screen"))
+        self.assertIn("lock / unlock", conflict("how do I lock my account", "how do I unlock my account"))
 
     def test_time_sensitive(self):
         self.assertEqual(time_sensitive("what is on the menu today"), "today")

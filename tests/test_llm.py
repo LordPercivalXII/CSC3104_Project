@@ -63,7 +63,7 @@ class GeminiTest(unittest.TestCase):
 
     def test_answer_is_returned_trimmed(self):
         self.use(FakeModels(fake_response("  Restart the router.  \n")))
-        self.assertEqual(llm.generate_answer("wifi down"), "Restart the router.")
+        self.assertEqual(llm.generate_answer("wifi down").text, "Restart the router.")
 
     def test_request_uses_settings(self):
         models = self.use(FakeModels(fake_response("ok")))
@@ -138,7 +138,7 @@ class MockAndStartupTest(unittest.TestCase):
 
     def test_mock_provider_uses_template(self):
         llm.client = None
-        self.assertEqual(llm.generate_answer("hi"), llm._mock_template.format(prompt="hi"))
+        self.assertEqual(llm.generate_answer("hi").text, llm._mock_template.format(prompt="hi"))
         self.assertEqual(llm.source_name(), "mock_llm")
 
     def test_missing_key_stops_startup_with_clear_message(self):

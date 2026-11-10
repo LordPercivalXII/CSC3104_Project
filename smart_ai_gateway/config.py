@@ -20,6 +20,14 @@ from pathlib import Path
 from typing import Mapping, Optional
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "gateway.config"
+# Relative file paths in the config (feedback_path, decision_log_path) start from the project root
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def resolve_path(path: str) -> Path:
+    """A file path from the config: absolute as given, relative from the project root."""
+    candidate = Path(path)
+    return candidate if candidate.is_absolute() else PROJECT_ROOT / candidate
 CONFIG_PATH_ENV = "GATEWAY_CONFIG"
 ENV_PREFIX = "GW"
 
@@ -53,6 +61,18 @@ class SemanticCacheSettings:
     verifier_model: str
     verifier_threshold: float
     skip_time_sensitive: bool
+    # Caching eligibility filter (REVIEW C11)
+    cache_max_prompt_chars: int
+    cache_max_prompt_lines: int
+    skip_personal_data: bool
+    personal_phrases: str
+    # Failure handling and housekeeping (REVIEW C8, C15)
+    qdrant_timeout_seconds: int
+    other_model_grace_seconds: int
+    # Several phrasings per answer, and "this answer was wrong" feedback
+    max_paraphrases: int
+    paraphrase_duplicate_similarity: float
+    feedback_path: str
 
     def __post_init__(self):
         _require(bool(self.qdrant_url.strip()), "semantic_cache.qdrant_url must not be empty")
@@ -71,21 +91,39 @@ class SemanticCacheSettings:
         _require(self.sweep_interval_seconds > 0, "semantic_cache.sweep_interval_seconds must be positive")
         _require(self.decay_half_life_seconds >= 0, "semantic_cache.decay_half_life_seconds must be 0 or more")
         _require(self.search_candidates > 0, "semantic_cache.search_candidates must be positive")
+        _require(self.cache_max_prompt_chars >= 0, "semantic_cache.cache_max_prompt_chars must be 0 or more")
+        _require(self.cache_max_prompt_lines >= 0, "semantic_cache.cache_max_prompt_lines must be 0 or more")
+        _require(self.qdrant_timeout_seconds > 0, "semantic_cache.qdrant_timeout_seconds must be positive")
+        _require(self.other_model_grace_seconds >= 0,
+                 "semantic_cache.other_model_grace_seconds must be 0 or more")
+        _require(self.max_paraphrases >= 0, "semantic_cache.max_paraphrases must be 0 or more")
+        _require(0.0 <= self.paraphrase_duplicate_similarity <= 1.0,
+                 "semantic_cache.paraphrase_duplicate_similarity must be between 0 and 1")
+        _require(bool(self.feedback_path.strip()), "semantic_cache.feedback_path must not be empty")
 
     @property
     def verification_enabled(self) -> bool:
         # The grey zone between the two thresholds is checked by the verifier model
         return self.verify_threshold < self.similarity_threshold
 
+    @property
+    def personal_phrase_list(self) -> list[str]:
+        # personal_phrases is one comma-separated line in gateway.config
+        return [p.strip().lower() for p in self.personal_phrases.split(",") if p.strip()]
+
 
 @dataclass(frozen=True)
 class GatewaySettings:
     prompt_max_length: int
     user_id_max_length: int
+    decision_log_enabled: bool
+    decision_log_path: str
 
     def __post_init__(self):
         _require(self.prompt_max_length > 0, "gateway.prompt_max_length must be positive")
         _require(self.user_id_max_length > 0, "gateway.user_id_max_length must be positive")
+        _require(not self.decision_log_enabled or bool(self.decision_log_path.strip()),
+                 "gateway.decision_log_path must not be empty while decision_log_enabled is on")
 
 
 @dataclass(frozen=True)

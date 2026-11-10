@@ -1,0 +1,2257 @@
+{
+ "version": 1,
+ "intents": [
+  {
+   "id": "it_vpn_install_windows",
+   "category": "IT",
+   "canonical": "What are the steps to install the company VPN client on my Windows laptop?",
+   "paraphrases": [
+    "vpn client install windows",
+    "Need the VPN app on my Windows work PC, where do I get it and how do I set it up?",
+    "Hi, I just got a Windows laptop and I'm trying to get the VPN software installed so I can work from home tonight.",
+    "Could you please explain how to download and configure the VPN application on a Windows computer?",
+    "how do i instal the vpn programm on windows"
+   ],
+   "confusable_with": [
+    "it_vpn_install_mac"
+   ]
+  },
+  {
+   "id": "it_vpn_install_mac",
+   "category": "IT",
+   "canonical": "What are the steps to install the company VPN client on my MacBook?",
+   "paraphrases": [
+    "vpn client install macbook",
+    "Where do I get the VPN app for my Mac and how do I set it up?",
+    "I'm on a MacBook that IT gave me yesterday and need the VPN software before I travel tomorrow, how do I put it on?",
+    "Could you please explain how to download and configure the VPN application on an Apple Mac?",
+    "how do i instal the vpn clent on my macbok"
+   ],
+   "confusable_with": [
+    "it_vpn_install_windows"
+   ]
+  },
+  {
+   "id": "it_vpn_drops",
+   "category": "IT",
+   "canonical": "My VPN keeps disconnecting every few minutes while I work from home. How can I stop that?",
+   "paraphrases": [
+    "vpn keeps dropping",
+    "VPN is so flaky today, it cuts out every five minutes, what gives?",
+    "I'm in the middle of a remote day and my VPN session keeps dying and reconnecting, which interrupts my downloads. Any fix?",
+    "Might you advise on why the VPN connection repeatedly drops and what I can do to make it stable?",
+    "vpn disconnetcs constantly when im at home"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "it_mfa_enable",
+   "category": "IT",
+   "canonical": "How do I turn on multi-factor authentication for my work account?",
+   "paraphrases": [
+    "enable MFA on my account",
+    "Want to switch on the extra sign-in verification, where's that setting?",
+    "IT sent a notice saying I must register for two-step sign-in this week. I'm at my desk now, what do I do first?",
+    "Please advise on the procedure for activating multi-factor sign-in on my corporate account.",
+    "how do i activte mutli-factor login"
+   ],
+   "confusable_with": [
+    "it_mfa_disable",
+    "it_mfa_new_phone"
+   ]
+  },
+  {
+   "id": "it_mfa_disable",
+   "category": "IT",
+   "canonical": "How do I turn off multi-factor authentication for my work account?",
+   "paraphrases": [
+    "disable MFA on my account",
+    "Can I switch off the extra sign-in verification? It's annoying me.",
+    "The verification prompts keep interrupting my work and I'd like them gone. How do I remove multi-factor from my account?",
+    "Please advise on the procedure for deactivating multi-factor sign-in on my corporate account.",
+    "how do i disabel mfa on my login"
+   ],
+   "confusable_with": [
+    "it_mfa_enable",
+    "it_mfa_new_phone"
+   ]
+  },
+  {
+   "id": "it_mfa_new_phone",
+   "category": "IT",
+   "canonical": "I got a new phone. How do I move my authenticator app codes onto it?",
+   "paraphrases": [
+    "transfer authenticator to new phone",
+    "Upgraded my phone and now the sign-in codes aren't there, how do I get them across?",
+    "I traded in my old handset this morning and now I can't approve logins at work. What should I do to move my verification setup?",
+    "Could you explain how to migrate my authenticator registration to a replacement mobile device?",
+    "new fone, how do i get my authenicator back"
+   ],
+   "confusable_with": [
+    "it_mfa_disable",
+    "it_mfa_enable"
+   ]
+  },
+  {
+   "id": "it_password_forgot",
+   "category": "IT",
+   "canonical": "I can't remember my work password. How do I get a new one?",
+   "paraphrases": [
+    "forgot password",
+    "Totally blanked on my password after the break, how do I get a fresh one?",
+    "I got back from two weeks off and my password won't come to me. I'm at my desk, how do I set a new one?",
+    "I have forgotten my login password and would appreciate guidance on obtaining a replacement.",
+    "i forgott my pasword what do i do"
+   ],
+   "confusable_with": [
+    "it_account_locked",
+    "it_password_change"
+   ]
+  },
+  {
+   "id": "it_password_change",
+   "category": "IT",
+   "canonical": "I remember my current password but want to change it to a new one. Where do I do that?",
+   "paraphrases": [
+    "change my password (I know the current one)",
+    "Want to swap my password for a new one, I still know the old one, where's the option?",
+    "Security told us to refresh our passwords this month. I'm logged in fine right now, so where do I update it?",
+    "Could you please show me how to update my existing password voluntarily?",
+    "wher do i chnage my pasword, i know the old one"
+   ],
+   "confusable_with": [
+    "it_account_locked",
+    "it_password_forgot"
+   ]
+  },
+  {
+   "id": "it_account_locked",
+   "category": "IT",
+   "canonical": "I typed my password wrong too many times and now my account says it's locked. What now?",
+   "paraphrases": [
+    "account locked after failed logins",
+    "Fat-fingered my password a few times and now I'm shut out, help!",
+    "I'm on a deadline and a message says my account is temporarily blocked because of repeated failed sign-ins. How long and who can free it?",
+    "My account has been suspended following several incorrect login attempts; kindly advise how to regain access.",
+    "acount is lockd cos i got the password wrong"
+   ],
+   "confusable_with": [
+    "it_lock_screen",
+    "it_password_change",
+    "it_password_forgot"
+   ]
+  },
+  {
+   "id": "it_lock_screen",
+   "category": "IT",
+   "canonical": "What's the quick way to lock my computer screen when I step away from my desk?",
+   "paraphrases": [
+    "lock screen shortcut",
+    "Whats the fastest way to lock my PC when I go grab coffee?",
+    "I'm heading to a meeting and want to make sure nobody can use my machine while I'm gone. How do I lock it?",
+    "Could you tell me the recommended method for securing my workstation screen when leaving my desk?",
+    "how to lcok my compter screen quickly"
+   ],
+   "confusable_with": [
+    "it_account_locked"
+   ]
+  },
+  {
+   "id": "it_printer_add",
+   "category": "IT",
+   "canonical": "How do I add the office network printer to my laptop?",
+   "paraphrases": [
+    "add network printer",
+    "Need to hook my laptop up to the shared printer on our floor, how?",
+    "I'm new and my laptop doesn't show any printers. Where do I find the shared one and connect to it?",
+    "Please explain the process for adding the shared office printer to my laptop.",
+    "how do i ad the shared printr to my laptop"
+   ],
+   "confusable_with": [
+    "it_printer_remove"
+   ]
+  },
+  {
+   "id": "it_printer_remove",
+   "category": "IT",
+   "canonical": "How do I remove an old printer I no longer use from my laptop's printer list?",
+   "paraphrases": [
+    "remove old printer from laptop",
+    "My printer list is full of dead ones, how do I get rid of the ones I don't use?",
+    "The team moved floors and I still see the previous floor's printer in every print dialog. How can I delete it from my list?",
+    "Kindly explain how to delete an obsolete printer from my device.",
+    "how do i delet a printer from my compter"
+   ],
+   "confusable_with": [
+    "it_printer_add"
+   ]
+  },
+  {
+   "id": "it_print_stuck",
+   "category": "IT",
+   "canonical": "My print job is stuck in the queue and nothing comes out of the printer. What should I do?",
+   "paraphrases": [
+    "print job stuck in queue",
+    "Sent something to print ages ago and it just sits there, now what?",
+    "I need a printed contract for a meeting in ten minutes but my job shows as pending and won't print. How do I clear it?",
+    "My document remains in the print queue and will not print; could you advise how to resolve this?",
+    "printr job is stcuk and wont print"
+   ],
+   "confusable_with": [
+    "it_print_duplex"
+   ]
+  },
+  {
+   "id": "it_print_duplex",
+   "category": "IT",
+   "canonical": "How do I print a document on both sides of the paper?",
+   "paraphrases": [
+    "print double sided",
+    "Is there a setting to print on front and back to save paper?",
+    "I've got a 30 page report to print and want to save paper by using both sides. Where do I choose that?",
+    "Could you explain how to configure duplex printing for a document?",
+    "how to prnt on both sidez of paper"
+   ],
+   "confusable_with": [
+    "it_print_stuck"
+   ]
+  },
+  {
+   "id": "it_scan_to_email",
+   "category": "IT",
+   "canonical": "How do I scan a paper document and have it emailed to myself from the office copier?",
+   "paraphrases": [
+    "scan to email copier",
+    "Want to scan a page at the copier and get it in my inbox, how?",
+    "I have a signed form on paper and need a digital copy in my inbox. I'm standing at the multifunction machine, what buttons do I press?",
+    "Please advise on how to use the multifunction device to scan a document directly to my email address.",
+    "how do i scna to my email from the copyer"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "it_teams_mute",
+   "category": "IT",
+   "canonical": "How do I mute my microphone during a Teams call?",
+   "paraphrases": [
+    "mute mic in Teams call",
+    "Need to go silent in a Teams meeting, where's the mute button?",
+    "I'm on a Teams call with background noise at home and want to silence myself while others talk. What do I click?",
+    "Could you please show me how to mute my audio in a Microsoft Teams meeting?",
+    "how to mtue myself on a teams call"
+   ],
+   "confusable_with": [
+    "it_teams_unmute"
+   ]
+  },
+  {
+   "id": "it_teams_unmute",
+   "category": "IT",
+   "canonical": "I'm muted in a Teams meeting and people can't hear me. How do I unmute?",
+   "paraphrases": [
+    "unmute in Teams meeting",
+    "Everyone says they can't hear me on Teams, how do I switch my mic back on?",
+    "I'm presenting in a Teams call and the others keep saying I'm on mute. Where is the button to turn my voice back on?",
+    "Please advise how to turn my microphone back on after being muted in a Teams meeting.",
+    "teams says im muted and i cant unmtue"
+   ],
+   "confusable_with": [
+    "it_teams_mute"
+   ]
+  },
+  {
+   "id": "it_teams_share",
+   "category": "IT",
+   "canonical": "How do I share my screen in a Microsoft Teams meeting?",
+   "paraphrases": [
+    "Teams screen share",
+    "Show my screen on a Teams call, which button?",
+    "I'm in a Teams call with a client and need to present my slides from my laptop. How do I start sharing?",
+    "Could you kindly explain how to present my desktop within a Teams meeting?",
+    "how do i shaer my scren on teams"
+   ],
+   "confusable_with": [
+    "it_zoom_share"
+   ]
+  },
+  {
+   "id": "it_zoom_share",
+   "category": "IT",
+   "canonical": "How do I share my screen during a Zoom call?",
+   "paraphrases": [
+    "Zoom screen sharing",
+    "Show my screen to people on Zoom, where's the button?",
+    "The client invited me to a Zoom session and I need to present a spreadsheet. How do I begin sharing?",
+    "Could you kindly explain how to present my desktop within a Zoom meeting?",
+    "how do i shre my scrren on zoom"
+   ],
+   "confusable_with": [
+    "it_teams_share"
+   ]
+  },
+  {
+   "id": "it_teams_join",
+   "category": "IT",
+   "canonical": "How do I join a meeting in Microsoft Teams from an invite?",
+   "paraphrases": [
+    "join Teams meeting from invite",
+    "Got a Teams link in my calendar, how do I get in?",
+    "A colleague sent me a calendar invite with a Teams link and the call starts in two minutes. What do I click to join?",
+    "Please explain how I can enter a Teams meeting using the link in my invitation.",
+    "how do i jion a teams meting"
+   ],
+   "confusable_with": [
+    "it_zoom_join"
+   ]
+  },
+  {
+   "id": "it_zoom_join",
+   "category": "IT",
+   "canonical": "How do I join a meeting in Zoom using an invite link?",
+   "paraphrases": [
+    "join Zoom meeting from link",
+    "Got a Zoom link by email, how do I get into the call?",
+    "An external supplier emailed me a Zoom link and the call is about to start. What do I click to get in?",
+    "Please explain how I can enter a Zoom session using the link in my invitation.",
+    "how do i jion a zoom meting"
+   ],
+   "confusable_with": [
+    "it_teams_join"
+   ]
+  },
+  {
+   "id": "it_ooo_set",
+   "category": "IT",
+   "canonical": "How do I set up an automatic out-of-office reply in Outlook?",
+   "paraphrases": [
+    "Outlook auto reply setup",
+    "Going on holiday, how do I make Outlook send automatic replies?",
+    "I'm off next week and want people who email me to get a message saying I'm away. Where do I set that in Outlook?",
+    "Could you please explain how to configure automatic replies in Outlook while I am on leave?",
+    "how to setup outlok auto-reply for holidays"
+   ],
+   "confusable_with": [
+    "it_ooo_off"
+   ]
+  },
+  {
+   "id": "it_ooo_off",
+   "category": "IT",
+   "canonical": "My Outlook automatic away message is still on after I came back. How do I switch it off?",
+   "paraphrases": [
+    "turn off Outlook auto reply",
+    "I'm back but Outlook keeps telling people I'm away, how do I stop it?",
+    "I returned on Monday yet clients are still receiving my away notice. Where do I disable the automatic replies?",
+    "Kindly advise how to deactivate the automatic reply in Outlook now that I have returned.",
+    "outlok still sends my away mesage, how do i turn it off"
+   ],
+   "confusable_with": [
+    "it_ooo_set"
+   ]
+  },
+  {
+   "id": "it_outlook_signature",
+   "category": "IT",
+   "canonical": "How do I create or change my email signature in Outlook?",
+   "paraphrases": [
+    "edit Outlook signature",
+    "Where do I put my job title and phone number at the bottom of my emails?",
+    "My role changed and the name at the end of my emails is out of date. How do I update my signature in Outlook?",
+    "Could you please show me how to set up a new signature for outgoing mail in Outlook?",
+    "how do i chnage my emial signiture"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "it_mailbox_full",
+   "category": "IT",
+   "canonical": "Outlook says my mailbox is almost full. How can I free up space?",
+   "paraphrases": [
+    "mailbox full what to do",
+    "Got a warning that my inbox is nearly out of space, how do I clear some?",
+    "I can't send mail this morning because Outlook reports my storage limit is reached. What should I delete or archive?",
+    "My mailbox quota has been nearly reached; please advise on reducing its size.",
+    "outlok says mailbx is ful"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "it_recall_email",
+   "category": "IT",
+   "canonical": "I sent an email to the wrong person. Can I get it back?",
+   "paraphrases": [
+    "recall sent email",
+    "Oops, sent a message to the wrong address, can I pull it back?",
+    "I just emailed a pricing sheet to the wrong colleague a minute ago and want to retract it before they read it. Is that possible?",
+    "Is it possible to retract an email that was sent in error, and if so, how?",
+    "i sent an emial to the wrong persn, undo?"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "it_email_iphone",
+   "category": "IT",
+   "canonical": "How do I set up my work email on my iPhone?",
+   "paraphrases": [
+    "work email on iPhone",
+    "Want my office mail on my iPhone, what are the steps?",
+    "I'm travelling next week and want to check my work inbox from my iPhone. How do I add the account?",
+    "Could you please explain how to configure my company mailbox on an Apple iPhone?",
+    "how do i get work emial on my iphon"
+   ],
+   "confusable_with": [
+    "it_email_android"
+   ]
+  },
+  {
+   "id": "it_email_android",
+   "category": "IT",
+   "canonical": "How do I set up my work email on my Android phone?",
+   "paraphrases": [
+    "work email on Android",
+    "Want my office mail on my Android phone, what are the steps?",
+    "I'm travelling next week and want to check my work inbox from my Android handset. How do I add the account?",
+    "Could you please explain how to configure my company mailbox on an Android device?",
+    "how do i get work emial on my andriod"
+   ],
+   "confusable_with": [
+    "it_email_iphone"
+   ]
+  },
+  {
+   "id": "it_software_install",
+   "category": "IT",
+   "canonical": "How do I ask IT to install a piece of software I need for my job?",
+   "paraphrases": [
+    "request software install",
+    "Need a program on my laptop that I'm not allowed to install myself, who do I ask?",
+    "My project needs a diagramming tool that isn't on my machine and I don't have admin rights. How do I request it?",
+    "Please advise on the process for requesting installation of additional software on my work computer.",
+    "how do i requst a new program be instaled"
+   ],
+   "confusable_with": [
+    "it_software_uninstall"
+   ]
+  },
+  {
+   "id": "it_software_uninstall",
+   "category": "IT",
+   "canonical": "How do I remove a program I don't need from my work laptop?",
+   "paraphrases": [
+    "uninstall an app",
+    "Want to get rid of an app I don't use anymore, how?",
+    "My laptop is low on disk space and there are programs I never use. How can I remove them safely?",
+    "Could you explain how to uninstall an unwanted application from my company computer?",
+    "how do i unistall a progam from my laptop"
+   ],
+   "confusable_with": [
+    "it_software_install"
+   ]
+  },
+  {
+   "id": "it_update_postpone",
+   "category": "IT",
+   "canonical": "Windows keeps asking me to restart for updates. Can I delay it until after work?",
+   "paraphrases": [
+    "postpone Windows update restart",
+    "Windows won't stop nagging me to restart, can I push it to tonight?",
+    "I'm in the middle of a presentation and the PC says it will restart for updates soon. How do I put it off until later?",
+    "Is it possible to schedule the update restart for outside working hours, and how is that done?",
+    "windwos update restrat keeps popping up, can i delay it"
+   ],
+   "confusable_with": [
+    "it_update_stuck"
+   ]
+  },
+  {
+   "id": "it_update_stuck",
+   "category": "IT",
+   "canonical": "My Windows update has been stuck on the same percentage for hours. What should I do?",
+   "paraphrases": [
+    "Windows update frozen",
+    "The update screen hasn't moved in ages, is my PC dead?",
+    "I restarted for updates this morning and the screen still says 'working on updates' after three hours. Should I wait or do something?",
+    "My computer appears to be frozen during a system update; could you advise on the correct course of action?",
+    "windos update is stcuk at 30%"
+   ],
+   "confusable_with": [
+    "it_update_postpone"
+   ]
+  },
+  {
+   "id": "it_wifi_staff",
+   "category": "IT",
+   "canonical": "How do I connect my laptop to the staff Wi-Fi network in the office?",
+   "paraphrases": [
+    "join staff wifi",
+    "Which wireless network do I pick at work and how do I log in?",
+    "It's my first day and my laptop sees lots of networks. Which one is the corporate one and how do I sign in?",
+    "Please advise on the procedure for connecting a company laptop to the internal wireless network.",
+    "how to conect to the staf wifi"
+   ],
+   "confusable_with": [
+    "it_wifi_guest"
+   ]
+  },
+  {
+   "id": "it_wifi_guest",
+   "category": "IT",
+   "canonical": "How can a visitor get on the guest Wi-Fi when they come to our office?",
+   "paraphrases": [
+    "visitor wifi access",
+    "I've got someone coming in for a meeting, how do they get online?",
+    "A client is arriving at 2pm and wants to connect their own laptop. What do I tell them about internet access for visitors?",
+    "Could you explain how an external guest can obtain internet access while on our premises?",
+    "how does a visiter get on the guest wi-fi"
+   ],
+   "confusable_with": [
+    "it_wifi_staff"
+   ]
+  },
+  {
+   "id": "it_laptop_slow",
+   "category": "IT",
+   "canonical": "My work laptop has become very sluggish. What can I try to speed it up?",
+   "paraphrases": [
+    "laptop running slow",
+    "My laptop is crawling, any quick fixes?",
+    "Everything on my computer lags, even opening a folder, and I have a client call in an hour. What can I do?",
+    "My laptop performance has noticeably degraded; could you suggest steps to improve it?",
+    "my labtop is relly slow"
+   ],
+   "confusable_with": [
+    "it_laptop_no_power"
+   ]
+  },
+  {
+   "id": "it_laptop_no_power",
+   "category": "IT",
+   "canonical": "My laptop won't switch on at all. What should I check?",
+   "paraphrases": [
+    "laptop dead won't power on",
+    "Pressed the power button and nothing happens, help",
+    "I came in this morning and my laptop shows no lights and no response when I press power. What should I try before calling IT?",
+    "My laptop does not power up; please advise on troubleshooting steps.",
+    "my laptp wont turn on at all"
+   ],
+   "confusable_with": [
+    "it_laptop_slow"
+   ]
+  },
+  {
+   "id": "it_laptop_request",
+   "category": "IT",
+   "canonical": "How do I request a new laptop from IT?",
+   "paraphrases": [
+    "order a replacement laptop",
+    "My laptop is ancient, who do I ask for a new one?",
+    "I'm starting on a project that needs more power and my current machine can't cope. What's the process to ask for a new laptop?",
+    "Please advise on the procedure to request a new laptop from the IT department.",
+    "how do i reqeust a new labtop"
+   ],
+   "confusable_with": [
+    "it_laptop_return"
+   ]
+  },
+  {
+   "id": "it_laptop_return",
+   "category": "IT",
+   "canonical": "How do I hand my old laptop back to IT after I've been given a new one?",
+   "paraphrases": [
+    "return old laptop to IT",
+    "Got my new laptop, where do I drop off the previous one?",
+    "I've finished moving my files to the replacement laptop and have the old one on my desk. What's the procedure to give it back?",
+    "Kindly explain how to return my previous laptop to the IT department.",
+    "where do i retrun my old labtop"
+   ],
+   "confusable_with": [
+    "it_laptop_request"
+   ]
+  },
+  {
+   "id": "it_monitor_second",
+   "category": "IT",
+   "canonical": "How do I connect a second monitor to my laptop and extend my display?",
+   "paraphrases": [
+    "set up dual monitors",
+    "Plugged in another screen, how do I make it extend instead of mirror?",
+    "I've borrowed a spare monitor and cable and want it as an extra screen next to my laptop. What are the display settings to use?",
+    "Could you explain how to configure an additional monitor as an extended desktop?",
+    "how to setup a secnd monitor with my laptop"
+   ],
+   "confusable_with": [
+    "it_monitor_flicker"
+   ]
+  },
+  {
+   "id": "it_monitor_flicker",
+   "category": "IT",
+   "canonical": "My monitor flickers on and off. What could be causing it and how do I fix it?",
+   "paraphrases": [
+    "screen flickering fix",
+    "My display keeps blinking, what's wrong?",
+    "Since this morning the screen on my desk flashes every few seconds and gives me a headache. What should I check?",
+    "My display flickers intermittently; could you advise on possible causes and remedies?",
+    "my moniter keeps flikering on and off"
+   ],
+   "confusable_with": [
+    "it_monitor_second"
+   ]
+  },
+  {
+   "id": "it_phishing_report",
+   "category": "IT",
+   "canonical": "I got a suspicious email asking for my login details. How do I report it?",
+   "paraphrases": [
+    "report phishing email",
+    "Weird email wants my password, who do I send it to?",
+    "An email that looks like it's from IT arrived and asks me to verify my account through a link. I haven't clicked anything, so how do I report it?",
+    "Kindly advise on the correct procedure to report a suspected phishing message.",
+    "got a phising email, how to report it"
+   ],
+   "confusable_with": [
+    "it_phishing_clicked"
+   ]
+  },
+  {
+   "id": "it_phishing_clicked",
+   "category": "IT",
+   "canonical": "I clicked a link in a suspicious email and entered my password. What should I do right now?",
+   "paraphrases": [
+    "clicked phishing link, entered password",
+    "Oh no I think I got phished, I typed my password into a dodgy page, what now?",
+    "A few minutes ago I followed a link in an odd email and entered my credentials on the page it opened. I'm worried, what are the urgent steps?",
+    "I have inadvertently submitted my credentials on a suspicious website; what immediate actions should I take?",
+    "i clickd a bad link and put in my pasword help"
+   ],
+   "confusable_with": [
+    "it_phishing_report"
+   ]
+  },
+  {
+   "id": "it_share_external",
+   "category": "IT",
+   "canonical": "How do I share a file with someone outside the company, such as a client?",
+   "paraphrases": [
+    "send a file to an outside client",
+    "Need a customer to see a document of mine, how do I give them access?",
+    "A supplier needs the quote I wrote in our online storage. How can I let this outside person open it safely?",
+    "Could you explain the approved method for sharing documents with external recipients?",
+    "how do i shre a file with some one outside the comapny"
+   ],
+   "confusable_with": [
+    "it_share_internal"
+   ]
+  },
+  {
+   "id": "it_share_internal",
+   "category": "IT",
+   "canonical": "How do I share a file with a colleague inside the company so we can both edit it?",
+   "paraphrases": [
+    "share a doc with a coworker",
+    "Want my teammate to edit my spreadsheet too, how do I give them access?",
+    "My team is writing a report together and I've got the first draft in my online storage. How can I let the others edit it?",
+    "Could you explain how to grant fellow employees edit access to a document I own?",
+    "how do i shar a document with a coleague to edit"
+   ],
+   "confusable_with": [
+    "it_share_external"
+   ]
+  },
+  {
+   "id": "it_recover_deleted",
+   "category": "IT",
+   "canonical": "I accidentally deleted a file. How can I get it back?",
+   "paraphrases": [
+    "recover deleted file",
+    "Deleted a document by mistake, can I undelete it?",
+    "I cleared out my folder this afternoon and realised I threw away the budget file as well. Where can I find it?",
+    "Is there a way to restore a file I have removed in error?",
+    "i delted a file by acident, can i get it back"
+   ],
+   "confusable_with": [
+    "it_restore_version"
+   ]
+  },
+  {
+   "id": "it_restore_version",
+   "category": "IT",
+   "canonical": "Someone overwrote my document with bad changes. How do I go back to an earlier version?",
+   "paraphrases": [
+    "restore previous version of a document",
+    "Somebody messed up the file, can I roll it back to yesterday's version?",
+    "A teammate saved over the proposal this morning and the good paragraphs are gone. Is there a way to look at older saved versions?",
+    "How can I revert a shared document to an earlier saved version?",
+    "how do i get an older verison of a doc back"
+   ],
+   "confusable_with": [
+    "it_recover_deleted"
+   ]
+  },
+  {
+   "id": "it_onedrive_sync",
+   "category": "IT",
+   "canonical": "My cloud folder sync is stuck and files aren't updating. What can I do?",
+   "paraphrases": [
+    "OneDrive not syncing",
+    "My synced folder shows a spinning arrow forever, how do I fix it?",
+    "I saved a presentation in my synced folder an hour ago and my colleague still can't see it. The sync icon just keeps spinning. What should I do?",
+    "The file synchronisation client appears to be stuck; could you recommend how to resolve it?",
+    "onedirve wont sinc my files"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "it_ticket_create",
+   "category": "IT",
+   "canonical": "How do I log a new support request with the IT helpdesk?",
+   "paraphrases": [
+    "raise an IT ticket",
+    "Where do I open a ticket for a computer problem?",
+    "My issue isn't urgent but I'd like it on record with IT so someone gets back to me. What's the way to submit a request?",
+    "Please advise on how to submit a new service request to the IT helpdesk.",
+    "how do i creat a suport ticket"
+   ],
+   "confusable_with": [
+    "it_ticket_status"
+   ]
+  },
+  {
+   "id": "it_ticket_status",
+   "category": "IT",
+   "canonical": "I submitted an IT ticket last week. How can I check on its progress?",
+   "paraphrases": [
+    "check status of my IT ticket",
+    "Opened a ticket days ago and heard nothing, how do I see where it's at?",
+    "I raised a request about my keyboard five days back and nobody has replied. Where can I see whether it's been picked up?",
+    "Could you please let me know how to view the current status of a previously logged support request?",
+    "how do i see if my tickt has been looked at"
+   ],
+   "confusable_with": [
+    "it_ticket_create"
+   ]
+  },
+  {
+   "id": "it_access_grant",
+   "category": "IT",
+   "canonical": "How do I give a teammate access to one of my shared folders?",
+   "paraphrases": [
+    "give someone folder access",
+    "Need to let a colleague into my project folder, how?",
+    "A new joiner on my team needs to see our project folder. As the owner, how do I add them with the right permission?",
+    "Could you explain how to grant a colleague permission to a folder that I manage?",
+    "how do i giv a coleague access to my folder"
+   ],
+   "confusable_with": [
+    "it_access_revoke"
+   ]
+  },
+  {
+   "id": "it_access_revoke",
+   "category": "IT",
+   "canonical": "How do I take away a former teammate's access to my shared folder?",
+   "paraphrases": [
+    "remove someone's folder access",
+    "Somebody moved teams and shouldn't see my folder anymore, how do I cut them off?",
+    "A colleague has switched departments and I want to make sure they can't open our team's folder any longer. Where do I take their permission off?",
+    "Please explain how to withdraw a person's permission to a folder that I own.",
+    "how do i remvoe someones acess to my folder"
+   ],
+   "confusable_with": [
+    "it_access_grant"
+   ]
+  },
+  {
+   "id": "it_headset_mic",
+   "category": "IT",
+   "canonical": "My headset microphone isn't being picked up on calls. How do I fix that?",
+   "paraphrases": [
+    "headset mic not working",
+    "People can't hear me through my headset, what do I check?",
+    "I've got an important call in five minutes and my headset is plugged in but the laptop doesn't register any microphone input. What can I try?",
+    "My headset's microphone is not detected during calls; could you advise how to resolve this?",
+    "my headest mic isnt workin"
+   ],
+   "confusable_with": [
+    "it_webcam"
+   ]
+  },
+  {
+   "id": "it_webcam",
+   "category": "IT",
+   "canonical": "My laptop camera shows a black screen in video calls. What should I try?",
+   "paraphrases": [
+    "webcam not working",
+    "Camera just shows black in meetings, any ideas?",
+    "I'm joining a video interview shortly and my laptop's built-in camera only displays a black box. What are the quick things to check?",
+    "My integrated camera produces no image during video conferences; please advise on troubleshooting.",
+    "my webcamm is blak in meetings"
+   ],
+   "confusable_with": [
+    "it_headset_mic"
+   ]
+  },
+  {
+   "id": "it_screenshot_windows",
+   "category": "IT",
+   "canonical": "How do I take a screenshot of part of my screen on a Windows computer?",
+   "paraphrases": [
+    "windows screenshot shortcut",
+    "What's the key combo for a snip of my screen on a Windows machine?",
+    "I need to send a screenshot of an error message to IT. I'm on a Windows PC, how do I capture just that window?",
+    "Could you explain how to capture a portion of the display on a Windows computer?",
+    "how do i take a screnshot on windos"
+   ],
+   "confusable_with": [
+    "it_screenshot_mac"
+   ]
+  },
+  {
+   "id": "it_screenshot_mac",
+   "category": "IT",
+   "canonical": "How do I take a screenshot of part of my screen on a Mac?",
+   "paraphrases": [
+    "mac screenshot shortcut",
+    "What's the key combo for a snip of my screen on a MacBook?",
+    "I need to send a screenshot of an error message to IT. I'm on a Mac, how do I capture just that window?",
+    "Could you explain how to capture a portion of the display on an Apple Mac?",
+    "how do i take a screnshot on a macbok"
+   ],
+   "confusable_with": [
+    "it_screenshot_windows"
+   ]
+  },
+  {
+   "id": "it_usb_blocked",
+   "category": "IT",
+   "canonical": "Why is my USB flash drive not working on my work laptop, and can I use it?",
+   "paraphrases": [
+    "USB drive blocked on laptop",
+    "My memory stick won't open on my work computer, is it banned?",
+    "I plugged in a USB stick with a presentation and nothing appears. Is there a policy blocking removable drives and what should I do instead?",
+    "Could you clarify why removable storage devices are not recognised on company laptops?",
+    "my usb stik wont work on the compnay laptop"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "it_phone_lost",
+   "category": "IT",
+   "canonical": "I lost my company mobile phone. What do I need to do?",
+   "paraphrases": [
+    "lost work phone",
+    "Can't find my work phone anywhere, who do I tell?",
+    "I think I left my company phone in a taxi last night. It has my email on it, so what are the urgent steps?",
+    "Please advise on the procedure to follow upon losing a company-issued mobile device.",
+    "i lsot my work fone what now"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "it_calendar_share",
+   "category": "IT",
+   "canonical": "How do I let a colleague see my calendar in Outlook?",
+   "paraphrases": [
+    "share my calendar",
+    "Want my coworker to see when I'm free, how do I share my calendar?",
+    "My assistant needs to see my schedule to book meetings. How can I give them access to my Outlook calendar?",
+    "Could you please explain how to give a fellow employee permission to view my calendar?",
+    "how do i shar my calender with someone"
+   ],
+   "confusable_with": [
+    "it_calendar_stop_share"
+   ]
+  },
+  {
+   "id": "it_calendar_stop_share",
+   "category": "IT",
+   "canonical": "How do I stop sharing my Outlook calendar with someone I previously gave access to?",
+   "paraphrases": [
+    "unshare my calendar",
+    "Don't want a coworker seeing my calendar any more, how do I take it back?",
+    "A former project partner can still view my meetings. Where do I remove their calendar permission?",
+    "Could you please explain how to withdraw calendar access that I previously granted to a colleague?",
+    "how do i stop shareing my calender with a person"
+   ],
+   "confusable_with": [
+    "it_calendar_share"
+   ]
+  },
+  {
+   "id": "it_dl_add",
+   "category": "IT",
+   "canonical": "How do I add someone to an email distribution list?",
+   "paraphrases": [
+    "add member to mailing list",
+    "New hire needs to be on our team mailing list, how do I put them on?",
+    "Our new analyst isn't getting the team-wide emails. As list owner, how do I add them as a member?",
+    "Could you explain the procedure for adding a new member to an existing email group?",
+    "how do i ad someone to a mailling list"
+   ],
+   "confusable_with": [
+    "it_dl_remove"
+   ]
+  },
+  {
+   "id": "it_dl_remove",
+   "category": "IT",
+   "canonical": "How do I take someone off an email distribution list?",
+   "paraphrases": [
+    "remove member from mailing list",
+    "Someone left our team and still gets the group emails, how do I remove them?",
+    "A contractor whose contract ended keeps receiving our team-wide messages. As list owner, how do I drop them?",
+    "Could you explain the procedure for removing a member from an existing email group?",
+    "how do i remvoe someone from a mailling list"
+   ],
+   "confusable_with": [
+    "it_dl_add"
+   ]
+  },
+  {
+   "id": "hr_leave_request",
+   "category": "HR",
+   "canonical": "How do I submit a request for annual leave?",
+   "paraphrases": [
+    "apply for annual leave",
+    "Want to book a week off in August, where do I put in the request?",
+    "I'm planning a holiday next month and need my time off approved. What's the process to put in the days?",
+    "Could you please outline the procedure for requesting annual leave?",
+    "how do i reqeust vacaton days"
+   ],
+   "confusable_with": [
+    "hr_leave_cancel",
+    "hr_leave_half_day",
+    "hr_sick_report",
+    "hr_unpaid_leave"
+   ]
+  },
+  {
+   "id": "hr_leave_balance",
+   "category": "HR",
+   "canonical": "How can I check how many annual leave days I have left this year?",
+   "paraphrases": [
+    "remaining leave balance",
+    "How many holiday days do I have remaining?",
+    "I want to book a trip but first need to know whether I still have enough days. Where do I see my leave balance?",
+    "Kindly advise where I can view my outstanding annual leave entitlement for the current year.",
+    "how do i chek my leave balnce"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_leave_cancel",
+   "category": "HR",
+   "canonical": "I already have approved annual leave but my plans changed. How do I cancel it?",
+   "paraphrases": [
+    "cancel approved leave",
+    "Trip is off, how do I scrap my booked holiday days?",
+    "My approved week off next month no longer works because the project shifted. How do I withdraw those days and get them back?",
+    "Please explain how to cancel annual leave that has already been approved.",
+    "how do i cancle leave that was alredy approved"
+   ],
+   "confusable_with": [
+    "hr_leave_half_day",
+    "hr_leave_request"
+   ]
+  },
+  {
+   "id": "hr_leave_half_day",
+   "category": "HR",
+   "canonical": "Can I take just half a day of annual leave, and how do I request it?",
+   "paraphrases": [
+    "book half day leave",
+    "Can I take just the morning off as leave?",
+    "I have a dentist appointment on Thursday afternoon and only need part of the day off. Can I log half a day?",
+    "Is it permissible to apply for half a day of annual leave, and what is the procedure?",
+    "can i take a haf day of leve"
+   ],
+   "confusable_with": [
+    "hr_leave_cancel",
+    "hr_leave_request"
+   ]
+  },
+  {
+   "id": "hr_leave_carryover_5",
+   "category": "HR",
+   "canonical": "Can I carry over up to 5 unused annual leave days into next year?",
+   "paraphrases": [
+    "carry forward 5 leave days",
+    "If I've got five days left over at year end, do they roll into next year?",
+    "It's nearly December and I will have 5 days of holiday unspent. Will I lose them or can they move into next year?",
+    "May I carry forward a maximum of five unused vacation days to the following year?",
+    "can i carrry 5 unused leave days over to next yr"
+   ],
+   "confusable_with": [
+    "hr_leave_carryover_10"
+   ]
+  },
+  {
+   "id": "hr_leave_carryover_10",
+   "category": "HR",
+   "canonical": "Can I carry over up to 10 unused annual leave days into next year?",
+   "paraphrases": [
+    "carry forward 10 leave days",
+    "If I've got ten days left over at year end, do they roll into next year?",
+    "It's nearly December and I will have 10 days of holiday unspent. Will I lose them or can they move into next year?",
+    "May I carry forward a maximum of ten unused vacation days to the following year?",
+    "can i carrry 10 unused leave days over to next yr"
+   ],
+   "confusable_with": [
+    "hr_leave_carryover_5"
+   ]
+  },
+  {
+   "id": "hr_sick_report",
+   "category": "HR",
+   "canonical": "I'm too ill to come in today. Who do I tell and how?",
+   "paraphrases": [
+    "calling in sick",
+    "Feeling rough, how do I let work know I won't be in today?",
+    "I'm unwell this morning and can't make it to the office. Who should I notify and by what time?",
+    "Please advise on the correct procedure for reporting an unexpected absence due to illness.",
+    "im sik today, how do i let work know"
+   ],
+   "confusable_with": [
+    "hr_compassionate_leave",
+    "hr_leave_request",
+    "hr_sick_certificate",
+    "hr_unpaid_leave"
+   ]
+  },
+  {
+   "id": "hr_sick_certificate",
+   "category": "HR",
+   "canonical": "When do I need to provide a doctor's note for sick leave?",
+   "paraphrases": [
+    "doctor's note for sick days",
+    "After how many sick days do they want a medical certificate?",
+    "I was off for a few days with flu and my manager mentioned paperwork. At what point do I need to hand in a doctor's certificate?",
+    "Could you clarify the circumstances under which a medical certificate is required for absence due to illness?",
+    "do i need a docter note for sick leve"
+   ],
+   "confusable_with": [
+    "hr_sick_report"
+   ]
+  },
+  {
+   "id": "hr_unpaid_leave",
+   "category": "HR",
+   "canonical": "Can I take a few weeks of unpaid leave, and who approves it?",
+   "paraphrases": [
+    "request unpaid leave",
+    "Is it possible to take a few weeks off without pay?",
+    "I want to travel for three weeks and have used up all my paid days. Can I take leave without salary, and what is the approval route?",
+    "Is unpaid leave available to employees and what is the application process?",
+    "can i take unpiad leave for few weeks"
+   ],
+   "confusable_with": [
+    "hr_leave_request",
+    "hr_sick_report"
+   ]
+  },
+  {
+   "id": "hr_compassionate_leave",
+   "category": "HR",
+   "canonical": "A close family member has died. What paid time off am I entitled to?",
+   "paraphrases": [
+    "bereavement leave",
+    "Lost my grandmother, how many days off do I get?",
+    "I have just lost a parent and need to be away for the funeral. What leave can I take, and who do I tell?",
+    "Please advise on the bereavement leave provisions following the death of an immediate relative.",
+    "my granny died, wat leve do i get"
+   ],
+   "confusable_with": [
+    "hr_sick_report"
+   ]
+  },
+  {
+   "id": "hr_maternity_apply",
+   "category": "HR",
+   "canonical": "How do I apply for maternity leave once I'm expecting?",
+   "paraphrases": [
+    "apply for maternity leave",
+    "I'm pregnant, when and how do I tell HR about my leave?",
+    "I'm 20 weeks along and want to arrange my time off before the baby comes. What forms and notice does HR need from me?",
+    "Could you please explain the procedure for applying for maternity leave?",
+    "how do i aply for maternty leave"
+   ],
+   "confusable_with": [
+    "hr_paternity_apply"
+   ]
+  },
+  {
+   "id": "hr_paternity_apply",
+   "category": "HR",
+   "canonical": "How do I apply for paternity leave when my partner is having a baby?",
+   "paraphrases": [
+    "apply for paternity leave",
+    "My wife is due soon, how do I book my time off as a new dad?",
+    "My partner is due next month and I want to make sure my time off is arranged. What forms and notice does HR need from me?",
+    "Could you please explain the procedure for applying for paternity leave?",
+    "how do i aply for paternty leave"
+   ],
+   "confusable_with": [
+    "hr_maternity_apply"
+   ]
+  },
+  {
+   "id": "hr_payslip_current",
+   "category": "HR",
+   "canonical": "Where can I download my payslip for this month?",
+   "paraphrases": [
+    "this month's payslip",
+    "Where do I find the latest pay slip?",
+    "I need my most recent payslip for a loan application today. Where do I get this month's from?",
+    "Could you tell me where to access my current monthly pay statement?",
+    "wher do i get this months paylsip"
+   ],
+   "confusable_with": [
+    "hr_payslip_old",
+    "hr_salary_error"
+   ]
+  },
+  {
+   "id": "hr_payslip_old",
+   "category": "HR",
+   "canonical": "How can I get a copy of a payslip from two years ago?",
+   "paraphrases": [
+    "old payslips from past years",
+    "Need a pay slip from 2 years back, is it still available?",
+    "The bank asked for payslips from two years ago and I deleted them. Where can I request those older statements?",
+    "Could you advise how to obtain copies of pay statements from earlier years?",
+    "how can i get old paylips from 2 yrs ago"
+   ],
+   "confusable_with": [
+    "hr_payslip_current"
+   ]
+  },
+  {
+   "id": "hr_salary_error",
+   "category": "HR",
+   "canonical": "My salary this month looks wrong. Who do I contact to have it checked?",
+   "paraphrases": [
+    "paid the wrong amount",
+    "Got less pay than usual, who should I ask?",
+    "The amount that landed in my bank account today is lower than expected and I can't see why. Who checks this and what should I send them?",
+    "My monthly salary appears to be incorrect; could you indicate the correct channel for querying it?",
+    "my pay is wrnog this month who do i ask"
+   ],
+   "confusable_with": [
+    "hr_payslip_current"
+   ]
+  },
+  {
+   "id": "hr_bank_details",
+   "category": "HR",
+   "canonical": "How do I change the bank account my salary is paid into?",
+   "paraphrases": [
+    "update bank account for salary",
+    "Switched banks, how do I tell payroll my new account?",
+    "I've closed my old account and need my next pay to go to a new one. What do I fill in and by when?",
+    "Please advise on the procedure for updating my bank account details for payroll.",
+    "how do i chnage my bank acount for pay"
+   ],
+   "confusable_with": [
+    "hr_emergency_contact"
+   ]
+  },
+  {
+   "id": "hr_emergency_contact",
+   "category": "HR",
+   "canonical": "How do I update the emergency contact person on my employee record?",
+   "paraphrases": [
+    "change emergency contact",
+    "Need to put a different person as my emergency contact, where?",
+    "My previous emergency contact has moved abroad and I want to list my sister instead. Where do I edit that?",
+    "Could you explain how to amend my emergency contact information held by the company?",
+    "how to updte my emergancy contact"
+   ],
+   "confusable_with": [
+    "hr_bank_details"
+   ]
+  },
+  {
+   "id": "hr_tax_statement",
+   "category": "HR",
+   "canonical": "Where do I get my annual tax statement for filing my income tax?",
+   "paraphrases": [
+    "year-end tax form",
+    "Where's the form I need to do my taxes?",
+    "It's tax season and I need the summary of what I earned and what was withheld last year. Where do I find it?",
+    "Could you kindly indicate where I can obtain my annual income tax statement?",
+    "wher do i get my yearly tax stament"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_overtime_weekday",
+   "category": "HR",
+   "canonical": "How do I claim overtime for extra hours I worked on a normal weekday evening?",
+   "paraphrases": [
+    "claim weekday overtime",
+    "Stayed late on Tuesday, how do I get paid for the extra hours?",
+    "I worked until 9pm on a normal working day to finish a deliverable. How do I submit those extra hours for overtime?",
+    "Please advise on the procedure for claiming overtime worked after regular hours on a weekday.",
+    "how to claim overtyme for working late on a weekday"
+   ],
+   "confusable_with": [
+    "hr_overtime_holiday"
+   ]
+  },
+  {
+   "id": "hr_overtime_holiday",
+   "category": "HR",
+   "canonical": "How do I claim pay for working on a public holiday?",
+   "paraphrases": [
+    "claim public holiday work pay",
+    "Worked on a bank holiday, how do I get the right pay for it?",
+    "I came in during the public holiday last week to cover a shift. How do I get paid or compensated for that day?",
+    "Please advise on the procedure for claiming compensation for work performed on a public holiday.",
+    "how do i claim for workin on a public holidy"
+   ],
+   "confusable_with": [
+    "hr_overtime_weekday"
+   ]
+  },
+  {
+   "id": "hr_wfh_regular",
+   "category": "HR",
+   "canonical": "How do I ask for a regular work-from-home arrangement, such as two days a week?",
+   "paraphrases": [
+    "permanent hybrid working request",
+    "Can I make working from home two days a week official?",
+    "I'd like to work remotely on a fixed schedule every week going forward. How do I ask for that arrangement?",
+    "Could you explain the process for requesting an ongoing remote working pattern?",
+    "how do i ask for a reglar work from home arangement"
+   ],
+   "confusable_with": [
+    "hr_wfh_oneoff"
+   ]
+  },
+  {
+   "id": "hr_wfh_oneoff",
+   "category": "HR",
+   "canonical": "I need to work from home just for tomorrow because of a plumber visit. What do I need to do?",
+   "paraphrases": [
+    "one-off WFH day",
+    "Can I do tomorrow from home because the plumber's coming, who do I tell?",
+    "There's a repair person coming to my flat tomorrow so I would like to be at home for that single day. Do I need approval?",
+    "Might I be permitted to work remotely on a single day owing to a household appointment, and whom should I notify?",
+    "can i work from hom just tommorow for a plummer"
+   ],
+   "confusable_with": [
+    "hr_wfh_regular"
+   ]
+  },
+  {
+   "id": "hr_resign",
+   "category": "HR",
+   "canonical": "I want to resign. How do I hand in my notice properly?",
+   "paraphrases": [
+    "how to resign",
+    "Quitting, who do I give my resignation to?",
+    "I've accepted another offer and would like to leave the company on good terms. What's the correct way to submit my notice?",
+    "Please advise on the formal procedure for tendering my resignation.",
+    "how do i resgin from my job"
+   ],
+   "confusable_with": [
+    "hr_exit_checklist"
+   ]
+  },
+  {
+   "id": "hr_exit_checklist",
+   "category": "HR",
+   "canonical": "I'm leaving the company soon. What do I need to do on my last day?",
+   "paraphrases": [
+    "last day checklist",
+    "What do I have to hand in before I walk out for good?",
+    "My final day is next Friday. What things do I need to return, sign or clear out before I go?",
+    "Could you outline the offboarding steps that a departing employee must complete?",
+    "wat do i do on my last day at wrk"
+   ],
+   "confusable_with": [
+    "hr_resign"
+   ]
+  },
+  {
+   "id": "hr_probation",
+   "category": "HR",
+   "canonical": "How long is the probation period for new employees?",
+   "paraphrases": [
+    "probation length",
+    "How many months until I'm no longer on probation?",
+    "I joined three weeks ago and my contract mentions a trial period. How long does it last and what happens at the end?",
+    "Could you tell me the duration of the probationary period for new hires?",
+    "how long is probaton for new staff"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_review_cycle",
+   "category": "HR",
+   "canonical": "When are annual performance reviews held and how do I prepare?",
+   "paraphrases": [
+    "performance review timing",
+    "When do appraisals happen and what do I have to do?",
+    "My manager mentioned reviews are coming up soon. What is the timeline and what should I prepare in advance?",
+    "Please explain the schedule of the annual performance appraisal and how employees should prepare.",
+    "when are perfomance reviews and how to prepare"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_raise_request",
+   "category": "HR",
+   "canonical": "How do I go about asking for a pay rise?",
+   "paraphrases": [
+    "ask for a raise",
+    "Think I deserve more money, how do I bring it up?",
+    "I've taken on extra responsibilities this year and want to discuss my salary. What's the proper way to request a raise?",
+    "Could you advise on the appropriate procedure for requesting a salary increase?",
+    "how do i ask for a pay riase"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_training_budget",
+   "category": "HR",
+   "canonical": "Is there a training budget I can use for a course or conference?",
+   "paraphrases": [
+    "professional development funding",
+    "Will the company pay for a course I want to take?",
+    "I found a certification that would help my role and want to know if the company covers the fee and how to apply.",
+    "Could you clarify whether the company funds employee courses and conferences, and how to request it?",
+    "is ther a trainin budget for courses"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_health_insurance",
+   "category": "HR",
+   "canonical": "How do I enrol in the company health insurance plan?",
+   "paraphrases": [
+    "sign up for health insurance",
+    "Where do I join the medical plan?",
+    "I'm a new joiner and want to be covered by the group health plan. What do I need to fill in and by when?",
+    "Please explain the enrolment procedure for the company medical insurance scheme.",
+    "how do i enrol in the helth insurence"
+   ],
+   "confusable_with": [
+    "hr_add_dependant"
+   ]
+  },
+  {
+   "id": "hr_add_dependant",
+   "category": "HR",
+   "canonical": "How do I add my spouse or child as a dependant to my benefits?",
+   "paraphrases": [
+    "add dependant to benefits",
+    "Need to put my newborn on my benefits plan, how?",
+    "I got married recently and want my husband covered under my work benefits. What do I need to update?",
+    "Could you explain how to register a family member as a dependant under my benefits?",
+    "how do i ad my kid to my benfits"
+   ],
+   "confusable_with": [
+    "hr_health_insurance"
+   ]
+  },
+  {
+   "id": "hr_employment_letter",
+   "category": "HR",
+   "canonical": "How do I get a letter from HR confirming that I work here?",
+   "paraphrases": [
+    "proof of employment letter",
+    "Bank wants a letter saying I'm employed, where do I request it?",
+    "I'm applying for a mortgage and the lender needs written confirmation of my job and salary. How do I ask HR for it?",
+    "Could you advise how to obtain an official employment verification letter?",
+    "how do i get an employmnet confirmation leter"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_harassment_report",
+   "category": "HR",
+   "canonical": "How do I report bullying or harassment at work confidentially?",
+   "paraphrases": [
+    "report harassment",
+    "A coworker keeps harassing me, who can I talk to?",
+    "Someone in my team has made me uncomfortable repeatedly and I want to raise it without it getting out. What are my options?",
+    "Please advise on the confidential procedure for reporting workplace harassment.",
+    "how to report bulying at wrok"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_onboarding_first_day",
+   "category": "HR",
+   "canonical": "I'm starting on Monday. What should I expect and bring on my first day?",
+   "paraphrases": [
+    "first day at work",
+    "New job Monday, what do I need to bring?",
+    "I am joining the company next week and want to know what documents to carry and what the first day looks like.",
+    "Could you please let me know what a new employee should bring and expect on their first day?",
+    "wat do i bring on my first day of work"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_referral_bonus",
+   "category": "HR",
+   "canonical": "Does the company pay a bonus if I refer a friend who gets hired?",
+   "paraphrases": [
+    "employee referral reward",
+    "Do I get money for bringing in a new hire?",
+    "A friend of mine is interviewing for an open role and I recommended them. Is there a reward if they join, and how do I register the referral?",
+    "Is there an employee referral scheme with a financial incentive for successful hires?",
+    "is there a refferal bonus for freinds"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_internal_job",
+   "category": "HR",
+   "canonical": "How do I apply for an open position within the company?",
+   "paraphrases": [
+    "internal job application",
+    "Saw a job posted internally, how do I apply?",
+    "A role in another department caught my eye. Do I need my manager's permission and where do I send my application?",
+    "Could you explain the process for internal employees to apply for vacancies?",
+    "how do i aply for an internl job"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_timesheet_submit",
+   "category": "HR",
+   "canonical": "How do I submit my weekly timesheet?",
+   "paraphrases": [
+    "submit timesheet",
+    "Where do I enter my hours for the week?",
+    "It's Friday afternoon and I still need to log my hours for the week. Where do I go and how do I send it for approval?",
+    "Kindly advise how to complete and submit my weekly time record.",
+    "how do i submitt my timesheat"
+   ],
+   "confusable_with": [
+    "hr_timesheet_correct"
+   ]
+  },
+  {
+   "id": "hr_timesheet_correct",
+   "category": "HR",
+   "canonical": "I made a mistake on a timesheet I already submitted. How do I correct it?",
+   "paraphrases": [
+    "fix submitted timesheet",
+    "Entered the wrong hours last week and it's already sent, what do I do?",
+    "I noticed after submitting that I logged 8 hours on a day I was actually off. How can I amend the entry?",
+    "Could you explain how to correct an error in a timesheet that has already been submitted?",
+    "i put wrong hours on my timesheat and sent it, how to fix"
+   ],
+   "confusable_with": [
+    "hr_timesheet_submit"
+   ]
+  },
+  {
+   "id": "hr_eap_support",
+   "category": "HR",
+   "canonical": "Does the company offer confidential counselling or mental health support?",
+   "paraphrases": [
+    "employee assistance programme",
+    "Is there someone I can talk to about stress, privately?",
+    "I've been feeling overwhelmed lately and would like to speak to a professional without my manager knowing. What support is offered?",
+    "Could you inform me of any confidential counselling services available to employees?",
+    "is ther counceling or mental heath suport at work"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_pension",
+   "category": "HR",
+   "canonical": "How do I change how much I contribute to my retirement plan?",
+   "paraphrases": [
+    "change pension contribution",
+    "Want to put more of my pay into the retirement scheme, how?",
+    "I'd like to increase my monthly retirement savings deduction starting next pay cycle. Where do I make that change?",
+    "Could you explain the procedure for adjusting my retirement plan contribution rate?",
+    "how do i chnage my pesnion contribution"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_study_leave",
+   "category": "HR",
+   "canonical": "Can I get paid time off to sit a professional exam, and how do I request it?",
+   "paraphrases": [
+    "exam leave",
+    "Have an exam for my certification, can I get days off for it?",
+    "I'm sitting a professional qualification exam in three weeks. Does the company grant study or exam leave and how do I ask?",
+    "Is paid examination leave available to employees, and what is the application process?",
+    "can i get leve to take an exm"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fac_room_small",
+   "category": "Facilities",
+   "canonical": "How do I reserve a small meeting room for a quick catch-up with two or three colleagues?",
+   "paraphrases": [
+    "book a huddle room",
+    "Need a little room for a chat with a few of us, where do I reserve one?",
+    "Three of us need somewhere quiet to talk for half an hour this afternoon. How do I grab a small room?",
+    "Could you explain how to reserve a small meeting space for a brief discussion?",
+    "how do i bok a small meting room for a few people"
+   ],
+   "confusable_with": [
+    "fac_room_cancel",
+    "fac_room_large"
+   ]
+  },
+  {
+   "id": "fac_room_large",
+   "category": "Facilities",
+   "canonical": "How do I reserve the large training room for a workshop with around 30 people?",
+   "paraphrases": [
+    "book big training room 30 people",
+    "Need the biggest room for a workshop of thirty, how do I book it?",
+    "I'm running a team workshop next month with about 30 attendees. Who do I contact to secure the large room?",
+    "Could you explain the procedure for booking the large training room for approximately thirty participants?",
+    "how to bok the large trainning room for 30"
+   ],
+   "confusable_with": [
+    "fac_room_cancel",
+    "fac_room_small"
+   ]
+  },
+  {
+   "id": "fac_room_cancel",
+   "category": "Facilities",
+   "canonical": "I no longer need a meeting room I booked. How do I release it?",
+   "paraphrases": [
+    "cancel room reservation",
+    "Meeting's off, how do I free up the room I reserved?",
+    "The workshop got postponed and I'd like to give the room back so someone else can use it. Where do I cancel?",
+    "Kindly advise how to cancel an existing meeting room reservation.",
+    "how do i cancle a room i booked"
+   ],
+   "confusable_with": [
+    "fac_room_large",
+    "fac_room_small"
+   ]
+  },
+  {
+   "id": "fac_hotdesk",
+   "category": "Facilities",
+   "canonical": "How do I reserve a hot desk for the days I'm in the office?",
+   "paraphrases": [
+    "book a desk for today",
+    "Which system do I use to grab a desk when I come in?",
+    "I only come in on Wednesdays and don't have an assigned seat. How do I reserve a desk in advance?",
+    "Could you explain how shared desks are reserved by hybrid employees?",
+    "how do i bok a hotdesk for when im in office"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fac_ergonomic",
+   "category": "Facilities",
+   "canonical": "How can I get an ergonomic assessment of my workstation because my back hurts?",
+   "paraphrases": [
+    "desk ergonomics check",
+    "My back aches from my chair, can someone assess my setup?",
+    "I've been getting neck and back pain at my desk and think my chair and monitor height are wrong. Who can assess my workstation?",
+    "Please advise how to request an ergonomic evaluation of my desk setup.",
+    "how do i get an ergonomc assesment for my desk"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fac_parking_employee",
+   "category": "Facilities",
+   "canonical": "How do I apply for a parking space as an employee?",
+   "paraphrases": [
+    "staff car park permit",
+    "Can I get a spot in the car park for my own car?",
+    "I've started driving to work and want a regular space in the staff car park. What's the application process?",
+    "Could you explain how employees apply for a car park permit?",
+    "how do i aply for a staff parkng space"
+   ],
+   "confusable_with": [
+    "fac_parking_visitor"
+   ]
+  },
+  {
+   "id": "fac_parking_visitor",
+   "category": "Facilities",
+   "canonical": "How do I arrange parking for a client who is visiting us?",
+   "paraphrases": [
+    "visitor parking arrangement",
+    "My customer's coming by car, where can they park?",
+    "A supplier is driving to our office on Thursday morning. How do I reserve a space for their car?",
+    "Could you advise how to organise car parking for an external visitor?",
+    "how do i arange parkng for a visting client"
+   ],
+   "confusable_with": [
+    "fac_parking_employee",
+    "fac_visitor_register"
+   ]
+  },
+  {
+   "id": "fac_visitor_register",
+   "category": "Facilities",
+   "canonical": "How do I pre-register a visitor so they can get into the building?",
+   "paraphrases": [
+    "register a guest in advance",
+    "Someone's coming to see me tomorrow, how do I put their name on the list?",
+    "An interview candidate arrives tomorrow at 10am. How do I tell reception to expect them so they can be signed in?",
+    "Could you explain the procedure for registering an expected visitor with reception?",
+    "how to regester a vistor before they arive"
+   ],
+   "confusable_with": [
+    "fac_parking_visitor"
+   ]
+  },
+  {
+   "id": "fac_card_lost",
+   "category": "Facilities",
+   "canonical": "I've lost my building access card. What should I do?",
+   "paraphrases": [
+    "lost access badge",
+    "Can't find my door pass anywhere, now what?",
+    "I think I left my security badge on the train last night and I need to deactivate it. Who do I tell and how do I get in meanwhile?",
+    "Please advise on the procedure following the loss of my building access card.",
+    "i lsot my access cardd"
+   ],
+   "confusable_with": [
+    "fac_card_faulty",
+    "fac_card_new"
+   ]
+  },
+  {
+   "id": "fac_card_new",
+   "category": "Facilities",
+   "canonical": "I'm a new starter. How do I get my building access card?",
+   "paraphrases": [
+    "get my first access badge",
+    "Just joined, where do I pick up my door pass?",
+    "It's my first week and I'm still being let in by reception each morning. How do I get my own access card issued?",
+    "Could you explain how new employees obtain a building access card?",
+    "how do i get my acess card as a new hire"
+   ],
+   "confusable_with": [
+    "fac_card_faulty",
+    "fac_card_lost"
+   ]
+  },
+  {
+   "id": "fac_card_faulty",
+   "category": "Facilities",
+   "canonical": "My access card still looks fine but won't open the door. What's wrong?",
+   "paraphrases": [
+    "badge not working at door",
+    "My pass doesn't open the door anymore even though I've got it, why?",
+    "Yesterday it worked, but this morning the card reader refuses my badge and I'm standing outside. Who fixes that?",
+    "My access card is no longer being accepted by the readers; could you advise on how to resolve this?",
+    "my acces card wont opn the door"
+   ],
+   "confusable_with": [
+    "fac_card_lost",
+    "fac_card_new"
+   ]
+  },
+  {
+   "id": "fac_aircon",
+   "category": "Facilities",
+   "canonical": "My area of the office is too hot or too cold. Who do I tell?",
+   "paraphrases": [
+    "temperature complaint",
+    "It's freezing at my desk, who can sort the air con?",
+    "Our corner of the floor is uncomfortably warm all afternoon and nobody knows how to change it. Where do I report that?",
+    "Could you advise whom to contact regarding uncomfortable temperatures in my work area?",
+    "its way too hott in my area who do i tell"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fac_light_broken",
+   "category": "Facilities",
+   "canonical": "A light above my desk has stopped working. How do I get it fixed?",
+   "paraphrases": [
+    "broken light bulb",
+    "Light over my seat is dead, who replaces it?",
+    "The bulb above my workstation went out and it is hard to see my keyboard. Who do I report this to?",
+    "Please advise on how to report a faulty ceiling light at my workstation.",
+    "the lite above my desk is broke"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fac_leak",
+   "category": "Facilities",
+   "canonical": "I noticed water leaking from the ceiling in our office. What should I do?",
+   "paraphrases": [
+    "report water leak",
+    "There's a drip coming from the ceiling, who do I call?",
+    "I just spotted water dripping onto the desks near the kitchen. Who should I alert straight away?",
+    "Kindly advise on the correct way to report a water leak in the building.",
+    "watter is leeking from the cieling"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fac_fire_alarm",
+   "category": "Facilities",
+   "canonical": "What should I do when the fire alarm goes off in the office?",
+   "paraphrases": [
+    "fire alarm procedure",
+    "Alarm's ringing, what do I do?",
+    "I'm new and have never been in a fire drill here. When the alarm sounds, where do I go and can I take my laptop?",
+    "Could you describe the evacuation procedure to follow when the fire alarm is activated?",
+    "what do i do wen the fire alrm goes off"
+   ],
+   "confusable_with": [
+    "fac_first_aid",
+    "fac_incident_report"
+   ]
+  },
+  {
+   "id": "fac_first_aid",
+   "category": "Facilities",
+   "canonical": "Who are the first aiders and where is the first aid kit?",
+   "paraphrases": [
+    "find a first aider",
+    "Someone's feeling unwell, where's the first aid kit and who can help?",
+    "A colleague just cut their hand in the kitchen. Where do I find the first aid box and who is trained to help?",
+    "Could you please let me know who the designated first aiders are and where first aid supplies are kept?",
+    "wher is the first aid kitt and who are the firstaiders"
+   ],
+   "confusable_with": [
+    "fac_fire_alarm",
+    "fac_incident_report"
+   ]
+  },
+  {
+   "id": "fac_incident_report",
+   "category": "Facilities",
+   "canonical": "I tripped and hurt my ankle at work. How do I report the accident?",
+   "paraphrases": [
+    "report a workplace injury",
+    "Slipped in the corridor and hurt my ankle, do I need to fill something in?",
+    "I fell on the stairs this morning and want to make sure it is formally recorded in case I need treatment later. What's the process?",
+    "Please explain how to file an accident report for an injury sustained on company premises.",
+    "i sliped and hurt myself at work, how to report"
+   ],
+   "confusable_with": [
+    "fac_fire_alarm",
+    "fac_first_aid"
+   ]
+  },
+  {
+   "id": "fac_bike_storage",
+   "category": "Facilities",
+   "canonical": "Is there secure bike storage or showers for people who cycle to work?",
+   "paraphrases": [
+    "bicycle parking at the office",
+    "Where can I leave my bike and is there a shower?",
+    "I'm thinking of cycling in daily. Is there somewhere safe to lock my bicycle and freshen up afterwards?",
+    "Could you tell me whether the office provides secure cycle storage and shower facilities?",
+    "is ther a bike rak and shwoers at work"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fac_after_hours",
+   "category": "Facilities",
+   "canonical": "How can I get into the office on a weekend or late in the evening?",
+   "paraphrases": [
+    "out of hours building access",
+    "Need to come in on Saturday, can I get in?",
+    "I have to finish a deadline over the weekend. Do I need special permission to enter the building outside normal hours?",
+    "Could you advise what arrangements are required to access the premises outside regular working hours?",
+    "can i get in the ofice after hours or weekends"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fac_stationery",
+   "category": "Facilities",
+   "canonical": "How do I order pens, notebooks and other stationery for my team?",
+   "paraphrases": [
+    "order office supplies",
+    "We've run out of sticky notes, who do I ask?",
+    "Our team cupboard is empty of pens and paper. Is there a form or a person to request more supplies?",
+    "Please advise on how to request office stationery for my department.",
+    "how do i order stationary for my team"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fin_receipt_lost",
+   "category": "Finance",
+   "canonical": "I lost the receipt for a work purchase. Can I still claim it back?",
+   "paraphrases": [
+    "missing receipt expense",
+    "Binned my receipt by mistake, can I still get the money back?",
+    "I paid for a taxi for a client visit and the receipt is gone. Is there a way to claim without it?",
+    "Is it possible to claim reimbursement when the original receipt has been misplaced?",
+    "lost my reciept can i still clam it"
+   ],
+   "confusable_with": [
+    "fin_claim_rejected"
+   ]
+  },
+  {
+   "id": "fin_limit_under50",
+   "category": "Finance",
+   "canonical": "Can I buy a work item costing under $50 myself and claim it back without asking first?",
+   "paraphrases": [
+    "small purchase under $50 pre-approval",
+    "Do I need permission to buy something that costs less than fifty bucks for work?",
+    "I need a $30 cable for a presentation tomorrow. Can I just pay for it and expense it without getting sign-off first?",
+    "Is prior authorisation required for a business purchase below fifty dollars, or may I claim it directly?",
+    "do i need approvall for a work buy under $50"
+   ],
+   "confusable_with": [
+    "fin_limit_over500"
+   ]
+  },
+  {
+   "id": "fin_limit_over500",
+   "category": "Finance",
+   "canonical": "What approval do I need before buying a work item that costs over $500?",
+   "paraphrases": [
+    "big purchase over $500 approval",
+    "Who has to sign off if I want to buy something for more than five hundred dollars?",
+    "My team needs equipment costing about $800. What approvals or quotes are required before I order it?",
+    "What authorisation is required prior to committing to a business purchase exceeding five hundred dollars?",
+    "wat approvl do i need for a purchase over $500"
+   ],
+   "confusable_with": [
+    "fin_limit_under50"
+   ]
+  },
+  {
+   "id": "fin_mileage",
+   "category": "Finance",
+   "canonical": "How do I claim mileage when I use my own car for a work trip?",
+   "paraphrases": [
+    "claim car mileage",
+    "Drove to a client in my own car, how do I get paid for the miles?",
+    "I used my personal vehicle to visit a customer 40 km away. What do I record and submit to be reimbursed for the distance?",
+    "Could you explain the process for claiming reimbursement for business travel in my private car?",
+    "how to claim milage for my own car"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fin_per_diem",
+   "category": "Finance",
+   "canonical": "What daily allowance do I get for meals when travelling overnight on business?",
+   "paraphrases": [
+    "travel meal allowance",
+    "How much can I spend on food on a work trip?",
+    "I'm travelling overnight for a conference next week. Is there a fixed daily meal amount, or do I claim actual receipts?",
+    "Could you advise on the daily subsistence allowance for employees travelling on business?",
+    "whats the daly meal alowance on trips"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fin_card_apply",
+   "category": "Finance",
+   "canonical": "How do I get a company credit card?",
+   "paraphrases": [
+    "apply for corporate card",
+    "Can I get a company card for my travel spend?",
+    "I travel often for work and keep paying out of pocket. Who do I ask to be issued a corporate card?",
+    "Please advise on the procedure for applying for a company charge card.",
+    "how do i get a compnay credit card"
+   ],
+   "confusable_with": [
+    "fin_card_lost"
+   ]
+  },
+  {
+   "id": "fin_card_lost",
+   "category": "Finance",
+   "canonical": "I lost my company credit card. What do I do?",
+   "paraphrases": [
+    "lost corporate card",
+    "Can't find my company card, who do I tell?",
+    "My company card is missing after my business trip and I'm worried about fraudulent charges. What are the immediate steps?",
+    "Kindly advise on the procedure to follow upon losing a company credit card.",
+    "i lsot my compnay card"
+   ],
+   "confusable_with": [
+    "fin_card_apply"
+   ]
+  },
+  {
+   "id": "fin_invoice_submit",
+   "category": "Finance",
+   "canonical": "I am a supplier. How do I submit an invoice to be paid?",
+   "paraphrases": [
+    "send invoice to get paid",
+    "Where do I send my bill so you pay me?",
+    "We delivered services to your company last month and need to invoice you. What address or portal should we use and what must be on it?",
+    "Could you please explain how vendors should submit invoices for payment?",
+    "how do i submitt an invioce as a supplier"
+   ],
+   "confusable_with": [
+    "fin_invoice_status"
+   ]
+  },
+  {
+   "id": "fin_invoice_status",
+   "category": "Finance",
+   "canonical": "I'm a supplier and sent an invoice weeks ago. How do I find out if it's been paid?",
+   "paraphrases": [
+    "check supplier payment status",
+    "Did you pay my invoice yet, who do I ask?",
+    "We invoiced you more than a month ago and haven't received payment. Who can tell us the current status?",
+    "Could you advise how a vendor can check the payment status of a submitted invoice?",
+    "how can i chek if my invioce was paid"
+   ],
+   "confusable_with": [
+    "fin_invoice_submit"
+   ]
+  },
+  {
+   "id": "fin_po_request",
+   "category": "Finance",
+   "canonical": "How do I raise a purchase order for goods or services I need?",
+   "paraphrases": [
+    "create a purchase order",
+    "Need a PO before I can order from a supplier, how do I get one?",
+    "A vendor won't deliver until I give them a purchase order number. How do I raise one?",
+    "Could you explain the procedure for generating a purchase order?",
+    "how do i raize a purchse order"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fin_reimburse_time",
+   "category": "Finance",
+   "canonical": "How long does it usually take for approved expenses to reach my bank account?",
+   "paraphrases": [
+    "when will I get expense money",
+    "How many days until I'm paid back for an approved claim?",
+    "My expense report was approved on Monday. How long before the money lands in my account?",
+    "Could you tell me the typical processing time for reimbursement once an expense claim is approved?",
+    "how long til my aproved expences are payed"
+   ],
+   "confusable_with": [
+    "fin_claim_rejected"
+   ]
+  },
+  {
+   "id": "fin_claim_rejected",
+   "category": "Finance",
+   "canonical": "My expense claim was rejected. What are my options?",
+   "paraphrases": [
+    "expense declined, what now",
+    "They bounced my claim, can I challenge it?",
+    "I got a notice saying my submitted expense was not accepted and I don't understand why. What can I do next?",
+    "Kindly advise on the steps available after an expense claim has been declined.",
+    "my expence was rejcted what can i do"
+   ],
+   "confusable_with": [
+    "fin_receipt_lost",
+    "fin_reimburse_time"
+   ]
+  },
+  {
+   "id": "fin_foreign_currency",
+   "category": "Finance",
+   "canonical": "How do I claim an expense that I paid for in a foreign currency?",
+   "paraphrases": [
+    "expense in another currency",
+    "Paid in euros on a trip, how do I put that on my claim?",
+    "I bought a train ticket abroad in a different currency. Which exchange rate do I use and what do I attach?",
+    "Could you explain how to submit an expense incurred in a foreign currency?",
+    "how do i claim an expnese in foreign currancy"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fin_advance",
+   "category": "Finance",
+   "canonical": "Can I get cash in advance for an upcoming business trip?",
+   "paraphrases": [
+    "travel advance",
+    "Is it possible to get some money upfront before I travel?",
+    "I'm going overseas for work next month and can't afford to fund it myself first. Can the company advance me funds?",
+    "Is a cash advance available to employees ahead of a business trip, and how is it requested?",
+    "can i get an advnce before a business trip"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "fin_cost_centre",
+   "category": "Finance",
+   "canonical": "How do I find out which cost centre or budget code to charge an expense to?",
+   "paraphrases": [
+    "which budget code do I use",
+    "What code goes on my claim?",
+    "The expense form asks for a cost centre and I don't know ours. Where can I find the right code for my team?",
+    "Could you indicate how I can identify the appropriate cost centre for an expense?",
+    "how do i find the cost cente code"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "gen_dress_jeans",
+   "category": "General",
+   "canonical": "Is it okay to wear jeans and trainers to the office?",
+   "paraphrases": [
+    "can I wear jeans at work",
+    "Are denim and sneakers allowed here?",
+    "I'm new and I'm unsure whether casual clothes like jeans are fine on a normal day, or just on certain days.",
+    "Could you tell me whether denim and casual footwear are acceptable in the workplace?",
+    "can i wear jeens and trainors to work"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "gen_social_media",
+   "category": "General",
+   "canonical": "What am I allowed to post about my job on my personal social media?",
+   "paraphrases": [
+    "social media policy",
+    "Can I tweet about my workplace?",
+    "I want to share a photo from our team event on my own social media account. Are there rules about posting about the company?",
+    "Could you outline the guidelines on discussing the company on personal social media?",
+    "can i post abuot work on social meda"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "gen_customer_data",
+   "category": "General",
+   "canonical": "How should I handle customer personal data so I follow the privacy rules?",
+   "paraphrases": [
+    "handling customer data",
+    "What are the do's and don'ts with client personal info?",
+    "I have a spreadsheet with customers' names and phone numbers. What are the rules for storing and sharing it?",
+    "Could you explain the proper handling of customers' personal information in accordance with data protection requirements?",
+    "how do i handel custmer personal data corectly"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "gen_find_policies",
+   "category": "General",
+   "canonical": "Where can I find the company policies and employee handbook?",
+   "paraphrases": [
+    "employee handbook location",
+    "Where are all the HR rules kept?",
+    "I want to read the official rules about conduct and benefits but I don't know where the documents are stored.",
+    "Could you tell me where company policies and the staff handbook can be accessed?",
+    "wher do i find the employe handbook"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "gen_gift_receive",
+   "category": "General",
+   "canonical": "A supplier offered me a gift. Am I allowed to accept it?",
+   "paraphrases": [
+    "accepting gifts from suppliers",
+    "Can I keep a present from a vendor?",
+    "A vendor sent a hamper to my desk after we renewed a contract. Do I have to decline it or declare it?",
+    "Is it permissible for employees to accept gifts from suppliers?",
+    "can i accpet a gift from a suppler"
+   ],
+   "confusable_with": [
+    "gen_gift_give"
+   ]
+  },
+  {
+   "id": "gen_gift_give",
+   "category": "General",
+   "canonical": "Can I give a gift to a client to thank them, and is there a limit?",
+   "paraphrases": [
+    "giving gifts to clients",
+    "Can I send a customer a present as thanks?",
+    "A long-standing customer just renewed and I would like to send them a thank-you box of chocolates. Is that allowed?",
+    "Is it appropriate for employees to give gifts to clients, and are there restrictions?",
+    "can i giv a gift to a cleint"
+   ],
+   "confusable_with": [
+    "gen_gift_receive"
+   ]
+  },
+  {
+   "id": "gen_outside_work",
+   "category": "General",
+   "canonical": "Am I allowed to have a second job or run a side business?",
+   "paraphrases": [
+    "side hustle policy",
+    "Can I freelance on weekends?",
+    "I do some design work for friends in the evenings and want to turn it into a small business. Do I need permission?",
+    "Is outside employment permitted, and is it necessary to seek approval?",
+    "can i have a secnd job or sidebusiness"
+   ],
+   "confusable_with": [
+    "gen_conflict_interest"
+   ]
+  },
+  {
+   "id": "gen_conflict_interest",
+   "category": "General",
+   "canonical": "My relative owns a company that could become our supplier. What do I need to declare?",
+   "paraphrases": [
+    "declare conflict of interest",
+    "My cousin's firm wants to sell to us, is that a problem?",
+    "I just learned that my brother's company is bidding for a contract in my department. Should I tell someone and who?",
+    "How should an employee disclose a potential conflict of interest involving a family member's business?",
+    "my relitive owns a suplier, do i need to declare"
+   ],
+   "confusable_with": [
+    "gen_outside_work"
+   ]
+  },
+  {
+   "id": "gen_media_enquiry",
+   "category": "General",
+   "canonical": "A journalist emailed me asking for a comment about the company. What should I do?",
+   "paraphrases": [
+    "press enquiry",
+    "Reporter wants a quote from me, can I talk to them?",
+    "A newspaper reporter phoned my desk wanting a statement about our business. Am I allowed to respond or who should I pass it to?",
+    "Whom should I direct a request from the media for comment on company matters?",
+    "a jounalist emailed me for a comment, what do i do"
+   ],
+   "confusable_with": [
+    "gen_customer_complaint"
+   ]
+  },
+  {
+   "id": "gen_customer_complaint",
+   "category": "General",
+   "canonical": "A customer is angry and wants to complain formally. How do I escalate it?",
+   "paraphrases": [
+    "escalate customer complaint",
+    "Client's furious and wants a manager, what's the process?",
+    "On a call a customer demanded to lodge an official complaint about our service. What are the steps and who handles it?",
+    "Could you outline the procedure for escalating a formal complaint from a customer?",
+    "how do i esclate an angry custmers complaint"
+   ],
+   "confusable_with": [
+    "gen_media_enquiry"
+   ]
+  },
+  {
+   "id": "gen_clear_desk",
+   "category": "General",
+   "canonical": "Do I have to clear my desk and lock away papers at the end of the day?",
+   "paraphrases": [
+    "clear desk policy",
+    "Can I leave my documents out overnight?",
+    "I usually leave a few client papers on my desk when I go home. Is there a rule that requires me to put them away?",
+    "Is there a clear desk requirement obliging staff to secure documents at close of day?",
+    "do i have to clear my desk every nite"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "gen_suggestion",
+   "category": "General",
+   "canonical": "Where can I send an idea for improving how we work?",
+   "paraphrases": [
+    "staff suggestion scheme",
+    "Have an idea to make things better, who do I tell?",
+    "I noticed a process that wastes everyone's time and have a fix in mind. Is there a place to submit suggestions?",
+    "Is there a channel through which employees may submit proposals for improvement?",
+    "wher can i submit an idea to improve things"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "gen_volunteer_day",
+   "category": "General",
+   "canonical": "Does the company give paid time off for volunteering or charity work?",
+   "paraphrases": [
+    "volunteer day",
+    "Do we get a day off to do charity stuff?",
+    "My local community group needs helpers for a Saturday project and a weekday activity. Does the company let employees take paid time to volunteer?",
+    "Could you confirm whether employees are granted paid time for volunteering activities?",
+    "do we get paid time for volunter work"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "gen_lost_property",
+   "category": "General",
+   "canonical": "I left my umbrella and water bottle somewhere in the office. Where is lost property?",
+   "paraphrases": [
+    "lost and found",
+    "Anyone handed in a jacket? Where do I look?",
+    "I think I forgot my jumper in a meeting room last Thursday. Is there a lost property box and who looks after it?",
+    "Could you tell me where lost items found on the premises are kept?",
+    "wher is the lost and fond"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "gen_public_wifi",
+   "category": "General",
+   "canonical": "Is it safe to work on company documents from a cafe's public Wi-Fi?",
+   "paraphrases": [
+    "working on public wifi",
+    "Can I open work files at a coffee shop?",
+    "I'm travelling and want to use the airport Wi-Fi to review client documents. What precautions or rules apply?",
+    "Is it acceptable to access company information over an unsecured public wireless network?",
+    "is it safe to do work on a cafes public wi-fi"
+   ],
+   "confusable_with": []
+  }
+ ],
+ "personal_templates": [
+  "Summarise this email for me: {pasted}",
+  "My manager {name} rejected my claim {id} for {amount}, what can I do?",
+  "Please proofread this message before I send it to my team: {pasted}",
+  "Can you check why my leave request {id} for {date} is still pending?",
+  "I was charged {amount} on {date} and I don't recognise it, what should I do about transaction {id}?",
+  "Translate this paragraph into plain English: {pasted}",
+  "{name} told me my payslip from {date} is wrong by {amount}, how do I raise it?",
+  "Here is my error log, what does it mean? {pasted}",
+  "Draft a reply to this customer message: {pasted}",
+  "My employee number is {id}, can you tell me my remaining leave?",
+  "Rewrite this paragraph so it sounds more professional: {pasted}",
+  "My laptop with asset tag {id} stopped working on {date}, what happened?",
+  "{name} from my team said I owe {amount} for lunch, is that something the company covers?",
+  "Turn these meeting notes into action items: {pasted}",
+  "Can you tell me the status of my ticket {id} that I raised on {date}?",
+  "I think my invoice {id} for {amount} was paid twice, can you look into it?",
+  "Explain this clause in my contract: {pasted}",
+  "What did {name} mean by this comment on my review: {pasted}",
+  "My expense of {amount} from {date} was declined, reference {id}, why?",
+  "Please list the key points in this document: {pasted}",
+  "I booked room {id} for {date} but {name} is already in it, what now?",
+  "Is the policy text I pasted below consistent with what you told me earlier? {pasted}",
+  "My last day is {date}, so what happens with the {amount} I'm owed?",
+  "Compare these two quotes and tell me which is better: {pasted}",
+  "{name} sent me this link and I clicked it on {date}, is my account {id} at risk?"
+ ],
+ "time_sensitive": [
+  "Is the office open this Saturday?",
+  "What's for lunch in the cafeteria today?",
+  "Is the office closed on the next public holiday?",
+  "Is the main printer on floor 2 working right now?",
+  "Is the VPN down at the moment?",
+  "What time does the shuttle bus leave this afternoon?",
+  "Which meeting rooms are free right now?",
+  "How many days are left until the payroll cut-off this month?",
+  "Is there a planned IT maintenance window tonight?",
+  "Is the car park full today?",
+  "Who is the first aider on duty today?",
+  "Is the cafeteria open tomorrow morning?",
+  "When is the next fire drill?",
+  "What is the deadline for submitting this month's expenses?",
+  "Are there any outages with email right now?",
+  "Is the building open on Sunday?",
+  "How many leave days do I have left as of today?",
+  "When is the next company all-hands meeting?",
+  "Is the reception desk staffed at the moment?",
+  "What is the weather like for the staff outing this week?"
+ ]
+}

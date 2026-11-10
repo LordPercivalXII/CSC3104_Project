@@ -202,13 +202,28 @@ class SchedulerWorker:
             )
 
             # Execute the configured inference function when this user gets a turn.
-            answer = self.inference_fn(request["prompt"])
+            result = self.inference_fn(request["prompt"])
+
+            # An LLMAnswer carries cacheable/usage; a plain string (custom or test
+            # inference functions) is treated as a complete, cacheable answer.
+            # Plain values only: the message may be published through Redis as JSON.
+            if hasattr(result, "text") and hasattr(result, "usage"):
+                answer = result.text
+                extra = {
+                    "cacheable": result.cacheable,
+                    "usage": result.usage,
+                    "finish_reason": result.finish_reason,
+                }
+            else:
+                answer = result
+                extra = {"cacheable": True, "usage": None, "finish_reason": None}
 
             response = {
                 "response": answer,
                 "source": "mock",
                 "user_id": user_id,
                 "request_id": request_id,
+                **extra,
             }
 
             self.job_store.set_status(request_id, "COMPLETED")

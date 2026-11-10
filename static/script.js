@@ -77,7 +77,7 @@ function describeSource(data) {
     return { text: "New answer", cls: "" };
 }
 
-function addBadge(message, data, seconds) {
+function addBadge(message, data, seconds, prompt) {
     const info = describeSource(data);
     const badge = document.createElement("span");
 
@@ -87,7 +87,41 @@ function addBadge(message, data, seconds) {
     }
     badge.textContent = `${info.text} · ${seconds.toFixed(1)} s`;
     message.appendChild(badge);
+
+    // Cached answers can be reported as wrong (POST /feedback removes them from the cache)
+    if (data.source === "semantic_cache" && data.point_id) {
+        badge.appendChild(feedbackLink(data.point_id, prompt));
+    }
     scrollToBottom();
+}
+
+function feedbackLink(pointId, prompt) {
+    const link = document.createElement("button");
+    link.type = "button";
+    link.textContent = "Wrong answer?";
+    // Looks like a small link inside the badge (no stylesheet change needed)
+    link.style.cssText = "margin-left:8px;background:none;border:none;padding:0;" +
+        "color:inherit;text-decoration:underline;cursor:pointer;font:inherit;";
+
+    link.addEventListener("click", async () => {
+        link.disabled = true;
+        try {
+            const response = await fetch("/feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ point_id: pointId, prompt: prompt })
+            });
+            // 404: someone else already reported it, which is fine
+            link.textContent = (response.ok || response.status === 404)
+                ? "Thanks, it won't be shown again" : "Could not send, try again";
+            link.disabled = response.ok || response.status === 404;
+        } catch (error) {
+            console.error("Feedback failed:", error);
+            link.textContent = "Could not send, try again";
+            link.disabled = false;
+        }
+    });
+    return link;
 }
 
 function addTyping() {
@@ -178,7 +212,7 @@ async function sendPrompt(prompt) {
 
         typing.remove();
         const message = addMessage(data.response, "assistant");
-        addBadge(message, data, seconds);
+        addBadge(message, data, seconds, prompt);
 
     } catch (error) {
         console.error("Request failed:", error);
