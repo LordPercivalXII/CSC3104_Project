@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: llm-gateway
+
+# Monitoring only: does not edit the gateway, its HPA, Redis, Qdrant or namespace.
+# The namespace and instrumented gateway must already exist.
+# kubectl kustomize --load-restrictor LoadRestrictionsNone demo/k8s | kubectl apply -f -
+resources:
+  - prometheus.yaml
+  - grafana.yaml
+  - locust.yaml
+
+configMapGenerator:
+  - name: demo-prometheus-config
+    files:
+      - prometheus.yml=../prometheus/kubernetes.yml
+  - name: demo-grafana-datasources
+    files:
+      - prometheus.yml=../grafana/provisioning/datasources/prometheus.yml
+  - name: demo-grafana-providers
+    files:
+      - gateway.yml=../grafana/provisioning/dashboards/gateway.yml
+  - name: demo-grafana-dashboard
+    files:
+      - gateway.json=../grafana/dashboards/gateway.json
+  - name: demo-locust-code
+    files:
+      - locustfile.py=../locust/locustfile.py
+      - workloads.py=../locust/workloads.py

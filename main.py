@@ -1,4 +1,5 @@
 import asyncio
+import os
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -10,7 +11,7 @@ from pathlib import Path
 from typing import Annotated, Optional
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, StringConstraints
 
@@ -23,13 +24,37 @@ from smart_ai_gateway.services.semantic_cache import (
 from smart_ai_gateway.services.llm import LLMUnavailable, generate_answer, source_name
 
 from starlette.concurrency import run_in_threadpool
+from demo.middleware import GatewayMetricsMiddleware
+from demo.telemetry import CONTENT_TYPE_LATEST, metrics
 
 # [gateway] in gateway.config: request limits and the decision log
 _gateway_cfg = get_settings().gateway
 
 # The LLM ([llm] in gateway.config) answers cache misses, one request at a time in fair-share order
 # SCHEDULER_BACKEND=redis shares one queue between all gateway pods (see scheduler/factory.py)
-scheduler_worker = create_scheduler_worker(inference_fn=generate_answer)
+def _observed_generate_answer(prompt: str):
+    """Count inference executions on the processing pod, including failed calls.
+
+    These are scheduler-level calls; Gemini's internal HTTP retries are not counted.
+    """
+    provider = get_settings().llm.provider
+    started = metrics.inference_started(provider)
+    try:
+        answer = generate_answer(prompt)
+    except Exception:
+        metrics.inference_finished(provider, started, error=True)
+        raise
+    metrics.inference_finished(provider, started, response=answer)
+    return answer
+
+
+scheduler_worker = create_scheduler_worker(inference_fn=_observed_generate_answer)
+metrics.configure(
+    scheduler_worker,
+    get_settings().llm.provider,
+    get_settings().llm.model,
+    os.getenv("SCHEDULER_BACKEND", "memory").lower(),
+)
 
 
 async def wait_for_llm(future):
@@ -58,6 +83,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(GatewayMetricsMiddleware)
 
 # Resolve paths relative to this Python file
 BASE_DIR = Path(__file__).resolve().parent
@@ -181,6 +207,11 @@ def health():
     return {"status": "healthy"}
 
 
+@app.get("/metrics", include_in_schema=False)
+def prometheus_metrics():
+    return Response(content=metrics.render(), headers={"Content-Type": CONTENT_TYPE_LATEST})
+
+
 # Receive a user's prompt
 @app.post("/chat")
 async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
@@ -244,6 +275,7 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             )
         decision.update(point_id=str(cached_result["point_id"]), source="semantic_cache")
         latency["total"] = _ms_since(started)
+        metrics.observe_decision(decision)
         background_tasks.add_task(_log_decision, decision)
         return {
             "response": cached_result["response"],
@@ -273,6 +305,7 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         # Background tasks do not run for an error response, so log straight away
         latency["llm"], latency["total"] = _ms_since(phase), _ms_since(started)
         decision.update(source=source_name(), error="llm_unavailable")
+        metrics.observe_decision(decision)
         await run_in_threadpool(_log_decision, decision)
         raise
     latency["llm"] = _ms_since(phase)
@@ -300,6 +333,7 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         usage=usage,
     )
     latency["total"] = _ms_since(started)
+    metrics.observe_decision(decision)
     background_tasks.add_task(_log_decision, decision)
 
     return {

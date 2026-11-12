@@ -1,0 +1,25 @@
+# Optional strategic merge patch, deliberately NOT in kustomization.yaml.
+# Enables delayed mock inference on an already deployed gateway, using separate cache/queue keys.
+# Requires the rebuilt image containing demo/app.py; it does not switch an image tag.
+# kubectl -n llm-gateway patch deployment gateway --type strategic --patch-file demo/k8s/mock-patch.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: create-collection
+          env:
+            - {name: GW_SEMANTIC_CACHE_COLLECTION_NAME, value: demo_semantic_cache}
+      containers:
+        - name: gateway
+          command: [python, -m, uvicorn, "demo.app:app", --host, 0.0.0.0, --port, "8000"]
+          env:
+            - {name: GW_LLM_PROVIDER, value: mock}
+            - {name: DEMO_MOCK_DELAY_SECONDS, value: "1"}
+            - {name: GW_SEMANTIC_CACHE_COLLECTION_NAME, value: demo_semantic_cache}
+            - {name: GW_GATEWAY_DECISION_LOG_ENABLED, value: "false"}
+            - {name: SCHEDULER_KEY_PREFIX, value: "demo:sched:"}
+            - {name: LLM_RATE_LIMIT_PER_MINUTE, value: "0"}

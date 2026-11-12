@@ -1,0 +1,24 @@
+# Remove the demo overrides after restoring the base image/config/Secret.
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: create-collection
+          env:
+            - name: GW_SEMANTIC_CACHE_COLLECTION_NAME
+              $patch: delete
+      containers:
+        - name: gateway
+          command: null
+          env:
+            - {name: LLM_RATE_LIMIT_PER_MINUTE, value: "10"}
+            - name: GW_LLM_PROVIDER
+              $patch: delete
+            - name: DEMO_MOCK_DELAY_SECONDS
+              $patch: delete
+            - name: GW_SEMANTIC_CACHE_COLLECTION_NAME
+              $patch: delete
+            - name: GW_GATEWAY_DECISION_LOG_ENABLED
+              $patch: delete
+            - name: SCHEDULER_KEY_PREFIX
+              $patch: delete

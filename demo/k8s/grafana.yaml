@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: demo-grafana}
+  template:
+    metadata:
+      labels: {app: demo-grafana}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: grafana/grafana:12.1.0
+          env:
+            - {name: PROMETHEUS_URL, value: "http://demo-prometheus:9090"}
+            - {name: GF_SECURITY_ADMIN_USER, value: admin}
+            # Local demo credential only. Service is internal; access via port-forward.
+            - {name: GF_SECURITY_ADMIN_PASSWORD, value: demo-local-password}
+            - {name: GF_USERS_ALLOW_SIGN_UP, value: "false"}
+            - {name: GF_ANALYTICS_REPORTING_ENABLED, value: "false"}
+            - {name: GF_ANALYTICS_CHECK_FOR_UPDATES, value: "false"}
+          ports:
+            - {name: http, containerPort: 3000}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          readinessProbe:
+            httpGet: {path: /api/health, port: http}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/grafana}
+            - {name: datasources, mountPath: /etc/grafana/provisioning/datasources, readOnly: true}
+            - {name: providers, mountPath: /etc/grafana/provisioning/dashboards, readOnly: true}
+            - {name: dashboard, mountPath: /var/lib/grafana/dashboards, readOnly: true}
+      volumes:
+        - name: data
+          emptyDir: {sizeLimit: 256Mi}
+        - name: datasources
+          configMap: {name: demo-grafana-datasources}
+        - name: providers
+          configMap: {name: demo-grafana-providers}
+        - name: dashboard
+          configMap: {name: demo-grafana-dashboard}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-grafana
+spec:
+  selector: {app: demo-grafana}
+  ports:
+    - {name: http, port: 3000, targetPort: http}
