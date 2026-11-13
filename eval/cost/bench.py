@@ -4,7 +4,7 @@ Benchmark runner: replays a synthetic workload through the gateway and writes on
 
 Configs
   nocache  every request is one LLM call (computed directly, no app).
-  old      ORIGINAL code (git archive of HEAD) run in a separate subprocess  (--old-root).
+  old      frozen git archive of --old-ref (default 2007299), in a temporary directory.
   new      the working tree, also in a separate subprocess.
 The app (main.app) runs in-process under fastapi TestClient; Qdrant is local in-memory with a fresh
 collection per run (per company with --isolation per_company, the default); the scheduler's
@@ -23,7 +23,10 @@ Example
   python bench.py --configs nocache,old,new --seeds 1-5 --sizes 10,50,200 --days 20 --zipf-s 0.8,1.0,1.2
 """
 import argparse
+from contextlib import ExitStack, contextmanager
 import csv
+from dataclasses import asdict
+from datetime import datetime, timezone
 import itertools
 import json
 import os
@@ -31,10 +34,11 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
-DEFAULT_OLD = r"C:\Users\jiayo\AppData\Local\Temp\claude\fa0c206a7deeb890\fe861789-cd95-47c1-8bce-be9c7a7eb0ea\scratchpad\old_code"
+DEFAULT_OLD_REF = "2007299"
 BASE_TS = 1_700_000_000.0
 
 COLUMNS = ["config", "seed", "zipf_s", "para_share", "personal_share", "time_share", "variation", "isolation",
@@ -67,24 +71,44 @@ def grid(a):
 
 
 # ---------------------------------------------------------------- child: run the app
+@contextmanager
+def _in_memory_qdrant_imports():
+    """Prevent even the import-time Qdrant compatibility HTTP check.
+
+    The gateway constructs a client before the first per-company collection is
+    created. Redirect that construction to local storage, not a live endpoint.
+    """
+    from qdrant_client import QdrantClient
+    with patch("qdrant_client.QdrantClient", side_effect=lambda *args, **kwargs: QdrantClient(":memory:")):
+        yield
+
+
 def _setup_app(a):
     """Import the gateway from --code-root and return (main_module, sc_module, llm_module)."""
     root = str(Path(a.code_root).resolve())
     os.chdir(root)
-    os.environ.update({"GW_LLM_PROVIDER": "mock", "HF_HUB_OFFLINE": "1", "PYTHONIOENCODING": "utf-8",
-                       "SCHEDULER_BACKEND": "memory", "LLM_RATE_LIMIT_PER_MINUTE": "0"})
+    # Do not inherit another deployment's overrides or a config outside the snapshot.
+    for key in list(os.environ):
+        if key.startswith("GW_") or key in ("GATEWAY_CONFIG", "QDRANT_URL", "SCHEDULER_COALESCE", "SCHEDULER_WORKERS",
+                                            "GEMINI_API_KEY", "GOOGLE_API_KEY"):
+            os.environ.pop(key)
     for kv in a.env or []:
         k, v = kv.split("=", 1)
         os.environ[k] = v
+    os.environ.update({"GW_LLM_PROVIDER": "mock", "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1",
+                       "PYTHONIOENCODING": "utf-8", "SCHEDULER_BACKEND": "memory",
+                       "LLM_RATE_LIMIT_PER_MINUTE": "0", "SCHEDULER_WORKERS": "1",
+                       "GW_GATEWAY_DECISION_LOG_ENABLED": "true" if a.decision_log_dir else "false"})
     sys.path[:] = [root, str(HERE)] + [p for p in sys.path if Path(p or ".").resolve() not in (Path(root), HERE)]
     try:
         import torch
         torch.set_num_threads(a.torch_threads)
     except Exception:
         pass
-    import main
-    from smart_ai_gateway.services import semantic_cache as sc
-    from smart_ai_gateway.services import llm
+    with _in_memory_qdrant_imports():
+        import main
+        from smart_ai_gateway.services import semantic_cache as sc
+        from smart_ai_gateway.services import llm
     return main, sc, llm
 
 
@@ -211,18 +235,71 @@ def write_csv(path, rows):
     tmp.replace(path)
 
 
+def _input_fingerprints(a):
+    from provenance import sha256_file
+    return {"intents_sha256": sha256_file(a.intents),
+            "recordings_sha256": sha256_file(a.recordings) if Path(a.recordings).exists() else None}
+
+
+def _harness_fingerprints():
+    from provenance import sha256_file
+    return {name: sha256_file(HERE / name) for name in ("bench.py", "workload.py", "replay.py", "provenance.py")}
+
+
 def run_jobs(a, config):
+    from provenance import code_provenance, digest, loaded_model_provenance, runtime_versions, sha256_file
     sys.path.insert(0, str(HERE))
     import workload
     from replay import ReplayLLM
-    intents_doc = json.loads(Path(a.intents).read_text(encoding="utf-8"))
     out_dir = Path(a.out)
     if not Path(a.recordings).exists():
         print(f"[WARNING] {a.recordings} not found - ALL answers will be synthetic", flush=True)
     ctx = None
+    # Capture code and inputs before any requests, then reject mid-run edits.
+    code_root = a.code_root if config != "nocache" else a.new_root
+    code = code_provenance(code_root, getattr(a, "code_revision", None))
+    inputs = _input_fingerprints(a)
+    harness = _harness_fingerprints()
+    intents_doc = json.loads(Path(a.intents).read_text(encoding="utf-8"))
+    versions = runtime_versions()
+    models, effective_settings = {}, None
+    if config != "nocache":
+        main, sc, llm = _setup_app(a)
+        clock = _Clock()
+        sc.time = clock
+        ca = sys.modules.get("smart_ai_gateway.services.cache_aging")
+        if ca is not None and hasattr(ca, "time"):
+            ca.time = clock
+        ctx = (main, sc, clock)
+        legacy = not hasattr(llm, "LLMAnswer")
+        models = loaded_model_provenance(sc)
+        from smart_ai_gateway.config import get_settings
+        effective_settings = asdict(get_settings())
+
+    def verify_unchanged():
+        checks = (("Gateway code", code_provenance(code_root, getattr(a, "code_revision", None)), code),
+                  ("Benchmark input files", _input_fingerprints(a), inputs),
+                  ("Benchmark harness", _harness_fingerprints(), harness))
+        for label, actual, expected in checks:
+            if actual != expected:
+                raise RuntimeError(f"{label} changed during this benchmark; no result was written for this job")
+
     for seed, zs, ps, sizes in grid(a):
+        verify_unchanged()
         path = out_dir / raw_name(config, seed, zs, ps, sizes, a.days)
+        meta_path = path.with_suffix(".meta.json")
+        identity = {"config": config, "seed": seed, "zipf_s": zs, "paraphrase_share": ps,
+                    "sizes": sizes, "days": a.days, "lam": a.lam, "personal_share": a.personal_share,
+                    "time_share": a.time_share, "variation": a.variation, "isolation": a.isolation,
+                    "torch_threads": a.torch_threads, "env_overrides": sorted(a.env or []),
+                    "code": code, "inputs": inputs, "harness_sha256": harness, "versions": versions,
+                    "loaded_models": models}
         if path.exists() and not a.force:
+            if not meta_path.exists():
+                raise ValueError(f"{path} has no provenance; use a new --out directory (or explicit --force)")
+            previous = json.loads(meta_path.read_text(encoding="utf-8"))
+            if previous.get("identity_sha256") != digest(identity) or previous.get("csv_sha256") != sha256_file(path):
+                raise ValueError(f"{path} belongs to different settings/code or was modified; use a new --out directory")
             print("skip existing", path.name, flush=True)
             continue
         wl = workload.generate(intents_doc, seed=seed, sizes=sizes, days=a.days, lam=a.lam, zipf_s=float(zs),
@@ -234,22 +311,19 @@ def run_jobs(a, config):
             replay.register(wl)
             rows = run_nocache(a, wl, replay, seed, zs, ps)
         else:
-            if ctx is None:
-                main, sc, llm = _setup_app(a)
-                clock = _Clock()
-                sc.time = clock
-                ca = sys.modules.get("smart_ai_gateway.services.cache_aging")
-                if ca is not None and hasattr(ca, "time"):
-                    ca.time = clock
-                ctx = (main, sc, clock)
-                legacy = not hasattr(llm, "LLMAnswer")
             replay = ReplayLLM(a.recordings, seed=seed, legacy_str=legacy)
             replay.register(wl)
             log_path = None
             if a.decision_log_dir:
                 log_path = Path(a.decision_log_dir) / ("decisions_" + raw_name(config, seed, zs, ps, sizes, a.days).replace(".csv", ".jsonl"))
             rows = run_app(a, config, wl, replay, ctx, seed, zs, ps, intents_doc, log_path)
+        verify_unchanged()
         write_csv(path, rows)
+        metadata = {"schema_version": 2, "created_utc": datetime.now(timezone.utc).isoformat(),
+                    "identity": identity, "identity_sha256": digest(identity),
+                    "csv_sha256": sha256_file(path), "effective_settings": effective_settings,
+                    "request_count": len(rows), "measurement": "sequential offline replay; virtual cache time"}
+        meta_path.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         hits = sum(int(r["hit"]) for r in rows)
         errs = sum(1 for r in rows if r["status"] != 200)
         print(f"[{config}] {path.name}: {len(rows)} requests, {hits} hits, {errs} errors, {time.time() - t0:.0f}s", flush=True)
@@ -281,7 +355,8 @@ def main():
     ap.add_argument("--recordings", default=str(HERE / "data" / "real_answers.jsonl"))
     ap.add_argument("--out", default=str(HERE / "results" / "raw"))
     ap.add_argument("--isolation", choices=["per_company", "shared"], default="per_company")
-    ap.add_argument("--old-root", default=DEFAULT_OLD)
+    ap.add_argument("--old-ref", default=DEFAULT_OLD_REF, help="Git commit archived for the old baseline (default 2007299)")
+    ap.add_argument("--old-root", default=None, help="Explicit external baseline directory; overrides --old-ref, files are fingerprinted")
     ap.add_argument("--new-root", default=str(REPO))
     ap.add_argument("--env", action="append", help="extra KEY=VAL for the gateway, e.g. GW_SEMANTIC_CACHE_SIMILARITY_THRESHOLD=0.9")
     ap.add_argument("--torch-threads", type=int, default=1)
@@ -289,10 +364,17 @@ def main():
     ap.add_argument("--force", action="store_true", help="overwrite existing raw CSVs")
     ap.add_argument("--child", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--code-root", help=argparse.SUPPRESS)
+    ap.add_argument("--code-revision", help=argparse.SUPPRESS)
     a = ap.parse_args()
+    for override in a.env or []:
+        if "=" not in override or not override.split("=", 1)[0].startswith(("GW_SEMANTIC_CACHE_", "GW_GATEWAY_")):
+            ap.error("--env accepts only GW_SEMANTIC_CACHE_* or GW_GATEWAY_* KEY=VALUE policy overrides")
+    if set(a.configs.split(",")) - {"nocache", "old", "new"}:
+        ap.error("--configs must contain only nocache,old,new")
     # the child chdir's into the gateway checkout, so every path must be absolute
     for k in ("intents", "recordings", "out", "old_root", "new_root"):
-        setattr(a, k, str(Path(getattr(a, k)).resolve()))
+        if getattr(a, k) is not None:
+            setattr(a, k, str(Path(getattr(a, k)).resolve()))
     if a.decision_log_dir:
         a.decision_log_dir = str(Path(a.decision_log_dir).resolve())
     sys.argv = [sys.argv[0]] + _absolutize(sys.argv[1:])
@@ -300,12 +382,24 @@ def main():
         (config,) = a.configs.split(",")
         run_jobs(a, config)
         return
+    with ExitStack() as stack:
+        from provenance import archived_baseline
+        baseline_revision = None
+        if "old" in a.configs.split(",") and a.old_root is None:
+            old_root, baseline_revision = stack.enter_context(archived_baseline(REPO, a.old_ref))
+            a.old_root = str(old_root)
+        _run_configs(a, baseline_revision)
+
+
+def _run_configs(a, baseline_revision):
     for config in a.configs.split(","):
         if config == "nocache":
             run_jobs(a, config)
             continue
         root = {"old": a.old_root, "new": a.new_root}[config]
         cmd = [sys.executable, str(HERE / "bench.py"), "--child", "--configs", config, "--code-root", root]
+        if config == "old" and baseline_revision:
+            cmd += ["--code-revision", baseline_revision]
         # re-pass every option except --configs (child gets exactly one)
         passthrough = []
         skip = False

@@ -273,12 +273,8 @@ class RedisJobStore:
         if item is None:
             return None
 
-        message = json.loads(item[1])
-        if "error" in message:
-            message["error"] = RemoteInferenceError(
-                message["error"], message.pop("rate_limited", False)
-            )
-        return message
+        from scheduler.reliability import decode_message
+        return decode_message(item[1])
 
 
 class RedisRateLimiter:
@@ -291,22 +287,65 @@ class RedisRateLimiter:
         self.redis = redis_client
 
         self._acquire = redis_client.register_script(RATE_LIMIT_SCRIPT)
+        import threading
+        self.reservation = threading.local()
 
     def try_acquire(self):
         """Take a slot if one is free.
 
         Returns 0 if a slot was taken, otherwise the seconds until one frees up.
         """
+        token = uuid.uuid4().hex
         wait_ms = self._acquire(
             keys=[self.key],
-            args=[self.limit, self.window_ms, uuid.uuid4().hex],
+            args=[self.limit, self.window_ms, token],
         )
+        if int(wait_ms) == 0:
+            self.reservation.value = token
         return int(wait_ms) / 1000
 
     def release(self):
         """Give back a slot that was taken but not used for an LLM call.
 
-        Removes the newest slot. Slots are interchangeable, so this keeps the
-        count right even if another pod took one a moment later.
+        Removes this thread's reservation, preserving another pod's newer slot.
         """
-        self.redis.zpopmax(self.key)
+        token = getattr(self.reservation, "value", None)
+        if token:
+            self.redis.zrem(self.key, token)
+            self.reservation.value = None
+
+
+class RedisPacedRateLimiter:
+    """Smooth admission on Redis server time, shared by every gateway."""
+
+    def __init__(self, redis_client, limit, window_seconds=60, prefix="sched:"):
+        import threading
+        self.redis, self.key = redis_client, prefix + "pacedlimit"
+        self.interval_ms = max(1, int(window_seconds * 1000 / limit))
+        self.reservation = threading.local()
+        self._acquire = redis_client.register_script('''
+            local t = redis.call('TIME')
+            local now = tonumber(t[1]) * 1000 + tonumber(t[2]) / 1000
+            local next_at = tonumber(redis.call('HGET', KEYS[1], 'next') or '0')
+            if next_at > now then return math.ceil(next_at - now) end
+            redis.call('HSET', KEYS[1], 'next', now + tonumber(ARGV[1]), 'token', ARGV[2])
+            redis.call('PEXPIRE', KEYS[1], math.ceil(tonumber(ARGV[1])) + 1000)
+            return 0
+        ''')
+        self._release = redis_client.register_script('''
+            if redis.call('HGET', KEYS[1], 'token') == ARGV[1] then return redis.call('DEL', KEYS[1]) end
+            return 0
+        ''')
+
+    def try_acquire(self):
+        token = uuid.uuid4().hex
+        wait = int(self._acquire(keys=[self.key], args=[self.interval_ms, token])) / 1000
+        if wait == 0:
+            self.reservation.value = token
+        return wait
+
+    def release(self):
+        token = getattr(self.reservation, "value", None)
+        if token:
+            self._release(keys=[self.key], args=[token])
+            self.reservation.value = None

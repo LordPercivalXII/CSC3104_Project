@@ -64,39 +64,44 @@ def send_request(user_id, prompt):
         }
 
 
-print("Sending 6 concurrent requests to Smart AI Gateway...")
-print("Employee A: 4 requests")
-print("Employee B: 1 request")
-print("Employee C: 1 request\n")
+def main():
+    print("Sending 6 concurrent requests to Smart AI Gateway...")
+    print("Employee A: 4 requests")
+    print("Employee B: 1 request")
+    print("Employee C: 1 request\n")
 
-start_time = time.perf_counter()
+    start_time = time.perf_counter()
 
-with ThreadPoolExecutor(max_workers=6) as executor:
+    with ThreadPoolExecutor(max_workers=6) as executor:
 
-    futures = [
-        executor.submit(send_request, user, prompt)
-        for user, prompt in requests
-    ]
+        futures = [
+            executor.submit(send_request, user, prompt)
+            for user, prompt in requests
+        ]
 
-    results = []
+        results = []
 
-    # Print responses as they finish
-    for future in as_completed(futures):
-        result = future.result()
-        results.append(result)
-        print(result)
+        # Print responses as they finish
+        for future in as_completed(futures):
+            result = future.result()
+            results.append(result)
+            print(result)
 
 
-total_time = round(time.perf_counter() - start_time, 2)
+    total_time = round(time.perf_counter() - start_time, 2)
 
-successful = sum(
-    1 for result in results
-    if result["status"] == "SUCCESS"
-)
+    successful = sum(
+        1 for result in results
+        if result["status"] == "SUCCESS"
+    )
 
-print("\n========== TEST SUMMARY ==========")
-print(f"Total requests: {len(requests)}")
-print(f"Successful: {successful}")
-print(f"Failed: {len(requests) - successful}")
-print(f"Total elapsed time: {total_time}s")
-print("==================================")
+    print("\n========== TEST SUMMARY ==========")
+    print(f"Total requests: {len(requests)}")
+    print(f"Successful: {successful}")
+    print(f"Failed: {len(requests) - successful}")
+    print(f"Total elapsed time: {total_time}s")
+    print("==================================")
+
+
+if __name__ == "__main__":
+    main()

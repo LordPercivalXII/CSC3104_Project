@@ -29,7 +29,12 @@ class Answer:
     """Duck-types smart_ai_gateway.services.llm.LLMAnswer (text/cacheable/finish_reason/usage)."""
 
     def __init__(self, text, usage, finish_reason="STOP"):
-        self.text, self.usage, self.finish_reason, self.cacheable = text, usage, finish_reason, True
+        reason = getattr(finish_reason, "name", None) or finish_reason
+        reason = str(reason).rsplit(".", 1)[-1] if reason is not None else None
+        self.text, self.usage, self.finish_reason = text, usage, reason
+        # Match the live gateway: nonempty but incomplete/safety-stopped answers
+        # may be returned, but must not become reusable cached answers.
+        self.cacheable = reason in (None, "STOP")
 
 
 class ReplayLLM:

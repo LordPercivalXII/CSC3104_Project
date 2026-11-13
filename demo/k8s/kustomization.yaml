@@ -27,3 +27,6 @@ configMapGenerator:
     files:
       - locustfile.py=../locust/locustfile.py
       - workloads.py=../locust/workloads.py
+  - name: demo-locust-data
+    files:
+      - intents.json=../../eval/cost/data/intents.json

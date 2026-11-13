@@ -1,300 +1,200 @@
+"""Fair queue execution with deadlines, recoverable leases and retained results."""
 import hashlib
 import logging
+import os
 import threading
 import time
+from time import monotonic
 import uuid
 from concurrent.futures import Future, InvalidStateError
 
+from scheduler.errors import SchedulerUnavailableError
 from scheduler.fair_scheduler import FairShareScheduler
 from scheduler.job_store import MemoryJobStore
+from scheduler.reliability import MemoryCoordinator, RedisCoordinator
 
 logger = logging.getLogger(__name__)
-
-# How long an idle worker waits before checking the queue again. Requests
-# submitted on this pod wake it immediately; requests from other pods are
-# picked up on the next check.
-IDLE_POLL_SECONDS = 0.5
-
-# How long the result listener waits for a result before looping
-RESULT_POLL_SECONDS = 1
-
-# Longest a rate-limited worker sleeps before checking again
-RATE_LIMIT_POLL_SECONDS = 1
+IDLE_POLL_SECONDS = 0.2
+RESULT_POLL_SECONDS = 0.2
+RATE_LIMIT_POLL_SECONDS = 0.2
 
 
 class SchedulerWorker:
-    def __init__(self, inference_fn=None, scheduler=None, job_store=None, num_workers=1,rate_limiter=None,
-                 coalesce=True):
-        # Assign inference function if there is no actual inference, use mock inference.
-        self.inference_fn = (
-            inference_fn if inference_fn is not None else self._mock_inference
-        )
-
-        # Defaults keep everything in this process. Pass the Redis versions
-        # to share the queue and job statuses between pods.
+    def __init__(self, inference_fn=None, scheduler=None, job_store=None, num_workers=1,
+                 rate_limiter=None, coalesce=True, request_timeout=None, lease_seconds=None,
+                 max_attempts=None, shutdown_timeout=None, max_pending=None, max_per_user=None):
+        self.inference_fn = inference_fn if inference_fn is not None else self._mock_inference
         self.scheduler = scheduler if scheduler is not None else FairShareScheduler()
         self.job_store = job_store if job_store is not None else MemoryJobStore()
-
-        # Limits how many LLM calls start per minute. None means no limit.
-        self.rate_limiter = rate_limiter
-
-        # Identical questions asked at the same time share one LLM call
-        self.coalesce = coalesce
-
-        # Number of requests this instance processes at the same time.
-        # 0 means it only accepts requests and other pods process them.
-        self.num_workers = num_workers
-
-        # Unique per instance, so other pods know where to send our results
+        self.rate_limiter, self.coalesce, self.num_workers = rate_limiter, coalesce, num_workers
+        def setting(value, name, default, cast=float):
+            result = cast(os.getenv(name, default) if value is None else value)
+            if result <= 0:
+                raise ValueError(name + " must be positive")
+            return result
+        config = {
+            "timeout": setting(request_timeout, "SCHEDULER_REQUEST_TIMEOUT_SECONDS", 120),
+            "lease": setting(lease_seconds, "SCHEDULER_LEASE_SECONDS", 30),
+            "attempts": setting(max_attempts, "SCHEDULER_MAX_ATTEMPTS", 2, int),
+            "max_pending": setting(max_pending, "SCHEDULER_MAX_PENDING", 1000, int),
+            "max_per_user": setting(max_per_user, "SCHEDULER_MAX_PENDING_PER_USER", 100, int),
+            "retention": 3600,
+        }
+        if num_workers < 0:
+            raise ValueError("SCHEDULER_WORKERS cannot be negative")
+        self.shutdown_timeout = setting(shutdown_timeout, "SCHEDULER_SHUTDOWN_TIMEOUT_SECONDS", 5)
+        coordinator = RedisCoordinator if hasattr(self.scheduler, "redis") else MemoryCoordinator
+        self.coordinator = coordinator(self.scheduler, self.job_store, config)
         self.instance_id = uuid.uuid4().hex
-
-        # Wake the worker when a request arrives
         self.new_request = threading.Event()
-
-        # Allows the worker to stop cleanly
-        self.running = False
-        self.threads = []
-
-        # Futures of requests submitted to this instance, by request ID.
-        # Futures can't be stored in Redis, so they stay here and the
-        # result is matched back to them by request ID.
-        self.jobs = {}
+        self.running, self.threads = False, []
+        self.jobs, self.leading = {}, {}
         self.jobs_lock = threading.Lock()
 
-        # request ID -> dedup key, for requests on this instance that lead a call
-        self.leading = {}
-
     @staticmethod
-    # This is for a mock response from a LLM model. NOT REAL!
-    def _mock_inference(prompt: str) -> str:
+    def _mock_inference(prompt):
         time.sleep(1)
         return f"You asked: {prompt}"
+
+    @staticmethod
+    def _dedup_key(prompt):
+        return hashlib.sha256(" ".join(prompt.casefold().split()).encode()).hexdigest()
 
     def start(self):
         if self.running:
             return
-
         self.running = True
-
         targets = [self._process_loop] * self.num_workers + [self._result_loop]
-        self.threads = [
-            threading.Thread(target=target, daemon=True)
-            for target in targets
-        ]
-
+        self.threads = [threading.Thread(target=target, daemon=True) for target in targets]
         for thread in self.threads:
             thread.start()
 
-    @staticmethod
-    def _dedup_key(prompt):
-        # Same question = same words, ignoring case and extra spaces
-        normalised = " ".join(prompt.casefold().split())
-        return hashlib.sha256(normalised.encode()).hexdigest()
-
     def submit(self, user_id, prompt, dedup=False):
-        """Queue a prompt. With dedup=True, a prompt identical to one already
-        waiting or being answered shares that LLM call instead."""
         if not self.running:
-            raise RuntimeError("Scheduler worker is not running")
-
-        request_id = str(uuid.uuid4())
-        # Future stores the result for the caller
-        future = Future()
-
-        with self.jobs_lock:
-            self.jobs[request_id] = future
-
-        future.add_done_callback(
-            lambda done: self._on_future_done(request_id, done)
-        )
-
-        # Status first, so a worker never sees a request without one
-        self.job_store.create(request_id, user_id)
-
-        request = {
-            "request_id": request_id,
-            "prompt": prompt,
-            "reply_to": self.instance_id
-        }
-
+            raise SchedulerUnavailableError("Scheduler worker is not running")
+        rid, future = str(uuid.uuid4()), Future()
+        request = dict(request_id=rid, prompt=prompt, user_id=user_id, reply_to=self.instance_id)
         if dedup and self.coalesce:
-            dedup_key = self._dedup_key(prompt)
-            leader = self.job_store.join_or_lead(dedup_key, request_id, {
-                "request_id": request_id,
-                "user_id": user_id,
-                "reply_to": self.instance_id,
-            })
-
-            # Another request is already getting this answer: wait for it
-            # without taking a queue turn or an LLM call
-            if leader is not None:
-                return future
-
-            with self.jobs_lock:
-                self.leading[request_id] = dedup_key
-            request["dedup_key"] = dedup_key
-
-        self.scheduler.add_request(user_id, request)
-
-        # Tell the worker that work is available
+            request["dedup_key"] = self._dedup_key(prompt)
+        with self.jobs_lock:
+            self.jobs[rid] = future
+        future.add_done_callback(lambda done: self._on_future_done(rid, done))
+        try:
+            leader = self.coordinator.submit(request)
+            if request.get("dedup_key") and not leader:
+                with self.jobs_lock:
+                    self.leading[rid] = request["dedup_key"]
+        except Exception:
+            future.cancel()
+            raise
         self.new_request.set()
-
         return future
 
-    def _on_future_done(self, request_id, future):
+    def _on_future_done(self, rid, future):
         with self.jobs_lock:
-            self.jobs.pop(request_id, None)
-            dedup_key = self.leading.pop(request_id, None)
-
-        # If the caller gave up while it was still queued, mark it so
-        # no worker on any pod wastes an LLM call on it. A leader stays
-        # queued if others are waiting for its answer.
+            self.jobs.pop(rid, None)
+            self.leading.pop(rid, None)
         if future.cancelled():
-            self.job_store.cancel(request_id, dedup_key=dedup_key)
+            try:
+                self.coordinator.cancel(rid)
+            except Exception:
+                logger.warning("Could not cancel shared job; its deadline still applies")
 
     def _process_loop(self):
         while self.running:
             try:
                 self._process_next()
             except Exception:
-                # e.g. Redis briefly unreachable. Keep the worker alive.
-                logger.exception("Scheduler worker error, retrying")
-                time.sleep(1)
+                logger.warning("Scheduler backend unavailable; retrying")
+                time.sleep(0.1)
 
     def _process_next(self):
-        if self.scheduler.pending_count() == 0:
+        if not self.scheduler.pending_count():
             self.new_request.clear()
-
-            # Recheck after clearing to avoid
-            # missing a concurrent submission
-            if self.scheduler.pending_count() == 0:
-                self.new_request.wait(timeout=IDLE_POLL_SECONDS)
-
+            if not self.scheduler.pending_count():
+                self.new_request.wait(IDLE_POLL_SECONDS)
             return
-
-        # Take a rate-limit slot before choosing a request, so the fair
-        # choice is made when the LLM call can actually start
         if self.rate_limiter is not None:
             wait = self.rate_limiter.try_acquire()
             if wait > 0:
                 time.sleep(min(wait, RATE_LIMIT_POLL_SECONDS))
                 return
-
-        result = self.scheduler.get_next_request()
-
-        # Another worker took it first
-        if result is None:
+        item = self.coordinator.take()
+        if item is None:
             self._release_slot()
             return
-
-        user_id, request = result
-        request_id = request["request_id"]
-
-        # Skip requests the caller already cancelled
-        if not self.job_store.claim(request_id):
-            self._release_slot()
-            return
-
+        _, request = item
+        rid = request["request_id"]
+        stopped = threading.Event()
+        def heartbeat():
+            while not stopped.wait(min(1, self.coordinator.config["lease"] / 3)):
+                if not self.running:
+                    return
+                try:
+                    if not self.coordinator.renew(request):
+                        return
+                except Exception:
+                    logger.warning("Could not renew processing lease")
+        threading.Thread(target=heartbeat, daemon=True).start()
         try:
-            print(
-                f"Processing request {request_id[:8]} "
-                f"from {user_id}"
-            )
-
-            # Execute the configured inference function when this user gets a turn.
-            result = self.inference_fn(request["prompt"])
-
-            # An LLMAnswer carries cacheable/usage; a plain string (custom or test
-            # inference functions) is treated as a complete, cacheable answer.
-            # Plain values only: the message may be published through Redis as JSON.
-            if hasattr(result, "text") and hasattr(result, "usage"):
-                answer = result.text
-                extra = {
-                    "cacheable": result.cacheable,
-                    "usage": result.usage,
-                    "finish_reason": result.finish_reason,
-                }
-            else:
-                answer = result
-                extra = {"cacheable": True, "usage": None, "finish_reason": None}
-
-            response = {
-                "response": answer,
-                "source": "mock",
-                "user_id": user_id,
-                "request_id": request_id,
-                **extra,
-            }
-
-            self.job_store.set_status(request_id, "COMPLETED")
-            message = {"request_id": request_id, "response": response}
-
-        except Exception as error:
-            self.job_store.set_status(request_id, "FAILED")
-            message = {"request_id": request_id, "error": error}
-
-        # Send the result to the instance whose caller is waiting for it
-        self.job_store.publish_result(request["reply_to"], message)
-
-        if request.get("dedup_key") is not None:
-            self._answer_waiters(request["dedup_key"], request_id, message)
-
-    def _answer_waiters(self, dedup_key, request_id, message):
-        # Requests that joined this call get the same answer, sent to
-        # whichever pod each caller is waiting on
-        for waiter in self.job_store.finish(dedup_key, request_id):
-            waiter_id = waiter["request_id"]
-
-            if "error" in message:
-                self.job_store.set_status(waiter_id, "FAILED")
-                reply = {"request_id": waiter_id, "error": message["error"]}
-            else:
-                self.job_store.set_status(waiter_id, "COMPLETED")
-                reply = {"request_id": waiter_id, "response": {
-                    **message["response"],
-                    "user_id": waiter["user_id"],
-                    "request_id": waiter_id,
-                    "coalesced": True,
-                }}
-
-            self.job_store.publish_result(waiter["reply_to"], reply)
+            try:
+                result = self.inference_fn(request["prompt"])
+                if hasattr(result, "text") and hasattr(result, "usage"):
+                    answer = result.text
+                    extra = dict(cacheable=result.cacheable, usage=result.usage, finish_reason=result.finish_reason)
+                else:
+                    answer = result
+                    extra = dict(cacheable=True, usage=None, finish_reason=None)
+                response = dict(response=answer, source="mock", user_id=request["user_id"], request_id=rid, **extra)
+                message = dict(request_id=rid, response=response)
+            except Exception as error:
+                message = dict(request_id=rid, error=error)
+            # Retry publication without repeating inference. The lease fences a stale worker.
+            until = monotonic() + self.coordinator.config["timeout"]
+            while True:
+                try:
+                    self.coordinator.complete(request, message)
+                    break
+                except Exception:
+                    if not self.running or monotonic() >= until:
+                        break
+                    time.sleep(0.1)
+        finally:
+            stopped.set()
 
     def _release_slot(self):
-        # The slot was taken but no LLM call follows, so another worker can use it
         if self.rate_limiter is not None:
             self.rate_limiter.release()
 
     def _result_loop(self):
         while self.running:
             try:
-                message = self.job_store.next_result(
-                    self.instance_id, timeout=RESULT_POLL_SECONDS
-                )
+                self.coordinator.maintain()
+                message = self.job_store.next_result(self.instance_id, timeout=RESULT_POLL_SECONDS)
+                if message is not None:
+                    self._resolve(message)
+                with self.jobs_lock:
+                    ids = list(self.jobs)
+                for result in self.coordinator.results(ids):
+                    if result:
+                        self._resolve(result)
             except Exception:
-                logger.exception("Result listener error, retrying")
-                time.sleep(1)
-                continue
-
-            if message is not None:
-                self._resolve(message)
+                logger.warning("Result backend unavailable; retrying")
+                time.sleep(0.1)
 
     def _resolve(self, message):
         with self.jobs_lock:
             future = self.jobs.get(message.get("request_id"))
-
         if future is None:
             return
-
         try:
             if "error" in message:
                 future.set_exception(message["error"])
             else:
                 future.set_result(message["response"])
         except InvalidStateError:
-            # The caller cancelled at the same moment
             pass
 
-    # Allow worker to change status of a request
     def update_status(self, request_id, status):
         self.job_store.set_status(request_id, status)
 
@@ -304,22 +204,14 @@ class SchedulerWorker:
     def stop(self):
         self.running = False
         self.new_request.set()
-
-        # Wake the result listener so it notices straight away
-        try:
-            self.job_store.publish_result(self.instance_id, {"request_id": None})
-        except Exception:
-            logger.exception("Could not wake result listener")
-
-        for thread in self.threads:
-            thread.join()
-        self.threads = []
-
-        # Cancel requests from our callers that haven't been answered, so
-        # they aren't left waiting. Queued ones are marked CANCELLED, so
-        # no other pod processes them either.
         with self.jobs_lock:
             futures = list(self.jobs.values())
-
-        for future in futures:
-            future.cancel()
+        def cancel_callers():
+            for future in futures:
+                future.cancel()
+        cancellation = threading.Thread(target=cancel_callers, daemon=True)
+        cancellation.start()
+        until = monotonic() + self.shutdown_timeout
+        for thread in [cancellation, *self.threads]:
+            thread.join(max(0, until - monotonic()))
+        self.threads = []

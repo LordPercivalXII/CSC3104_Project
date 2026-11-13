@@ -1,5 +1,12 @@
 # Does a semantic prompt cache save an SME money? Benchmark results
 
+> Historical report, not a rerun of the code revised on 2026-11-13. The full raw benchmark runs cited here
+> are absent from this checkout; only the small artificial fixture outputs are checked in. The figures below
+> have been retained for reference and have not been independently reproduced by the review fixes.
+> Token-cost and hosting calculations are modelled estimates, not measured cloud bills. See README.md.
+> Comparisons across model prices reprice the recorded token workload; they do not measure each model's
+> own token usage, accuracy or latency.
+
 *Run on 2026-11-10 against the working tree (uncommitted changes on `docker-k8s-deployment`). "Old" is commit `2007299`. The raw data, scripts and the commands to reproduce everything are in this folder; see [README.md](README.md).*
 
 ## Key findings

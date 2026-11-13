@@ -85,10 +85,11 @@ def display_results(name, order):
         print(f"Employee {user}: {average:.2f} seconds")
 
 
-requests = create_requests()
+def main():
+    requests = create_requests()
+    display_results("FIFO Scheduling", fifo_order(requests))
+    display_results("Round Robin Scheduling", round_robin_order(requests))
 
-fifo = fifo_order(requests)
-round_robin = round_robin_order(requests)
 
-display_results("FIFO Scheduling", fifo)
-display_results("Round Robin Scheduling", round_robin)
+if __name__ == "__main__":
+    main()

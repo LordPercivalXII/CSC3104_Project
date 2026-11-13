@@ -43,3 +43,28 @@ class MemoryRateLimiter:
         with self.lock:
             if self.calls:
                 self.calls.pop()
+
+
+class MemoryPacedRateLimiter:
+    """Optional smooth admission: one call every window/limit seconds, no burst."""
+
+    def __init__(self, limit, window_seconds=60):
+        self.interval = window_seconds / limit
+        self.next_at = 0
+        self.lock = threading.Lock()
+        self.reservation = threading.local()
+
+    def try_acquire(self):
+        with self.lock:
+            now = time.monotonic()
+            if now < self.next_at:
+                return self.next_at - now
+            self.next_at = now + self.interval
+            self.reservation.value = self.next_at
+            return 0
+
+    def release(self):
+        with self.lock:
+            if getattr(self.reservation, "value", None) == self.next_at:
+                self.next_at = 0
+            self.reservation.value = None

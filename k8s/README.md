@@ -49,15 +49,20 @@ with a queue per pod, fairness and the limit would only hold inside each pod. Se
 | `LLM_RATE_LIMIT_PER_MINUTE` | `10` | LLM calls per minute for all pods together; `0` = no limit. Keep it below the Gemini free-tier requests per minute, which are per Google project and shared by every pod |
 | `SCHEDULER_WORKERS` | not set (1) | LLM calls each pod makes at the same time |
 | `SCHEDULER_COALESCE` | not set (`true`) | Identical questions asked at the same time share one LLM call; `false` turns it off |
+| `SCHEDULER_REQUEST_TIMEOUT_SECONDS` | not set (120) | Bounds each HTTP request and queued job |
+| `LLM_RATE_LIMIT_MODE` | not set (`sliding`) | `paced` spaces admissions to prevent an initial burst |
 
 Duplicate questions: when several people ask the same question (ignoring case and spacing) while
 it is still waiting or being answered, only the first takes a queue turn and an LLM call; the others
 get the same answer, and it is cached once. Reworded questions are left to the semantic cache.
 
-Redis runs with `appendonly yes` (queued requests survive a restart) and `maxmemory-policy volatile-lru`
-(when full it only evicts job statuses and results, never the queue). If Redis is down, cache hits still
-work and the gateway pods stay up; cache misses fail until Redis is back, and the pods reconnect by
-themselves (`test-scheduler.sh` step 3).
+Redis runs with `appendonly yes` and `maxmemory-policy volatile-lru`. Pending records, queue state and
+processing leases have no TTL, while terminal records/results expire. Recovery uses fenced leases and
+retained results; it may repeat an inference whose outcome was lost, so execution is at least once.
+An append-only log reduces restart loss but is not a guarantee against Redis data loss.
+If Redis is down the gateway processes remain alive, but `/ready` returns 503 and Kubernetes removes
+them from Service endpoints until dependencies recover. A direct pod request can still use the cache.
+Drain traffic before deploying the revised scheduler; do not mix its state protocol with older workers.
 
 ## Settings: the ConfigMap
 
@@ -81,7 +86,8 @@ file from outside `k8s/` unless you pass that flag. `up.sh` already uses it.)
 
 - **Rolling updates:** `maxSurge: 1, maxUnavailable: 0`. A new pod must be ready before an old one stops.
 - **Spread:** a topology spread constraint puts the pods on different nodes where possible.
-- **Readiness:** a pod receives traffic only when the app answers `/health` and Qdrant answers `/readyz`.
+- **Readiness:** `/ready` checks that the Qdrant collection exists and the Redis scheduler answers PING.
+  `/health` stays independent for liveness.
 - **Startup:** the startup probe allows about 3 minutes for the embedding model to load.
 - **Graceful stop:** a 5 s `preStop` sleep lets the load balancer drop the pod before it shuts down.
 - **Self-healing:** delete a pod and the Deployment starts a replacement (`test.sh` step 5).

@@ -2,33 +2,26 @@
 
 from scheduler.scheduler_worker import SchedulerWorker
 
-worker = SchedulerWorker()
+def main():
+    worker = SchedulerWorker()
+    worker.start()
+    try:
+        print("Scheduler worker started!")
+        requests = [
+            ("A", "What is Docker?"),
+            ("A", "What is Kubernetes?"),
+            ("A", "Explain cloud computing"),
+            ("B", "What is Redis?"),
+            ("B", "Explain caching"),
+            ("C", "What is FastAPI?")
+        ]
+        futures = [worker.submit(user, prompt) for user, prompt in requests]
+        for future in futures:
+            print("Response:", future.result(timeout=15))
+    finally:
+        worker.stop()
+    print("All requests completed!")
 
-worker.start()
 
-print("Scheduler worker started!")
-
-# Submit requests from three employees
-requests = [
-    ("A", "What is Docker?"),
-    ("A", "What is Kubernetes?"),
-    ("A", "Explain cloud computing"),
-    ("B", "What is Redis?"),
-    ("B", "Explain caching"),
-    ("C", "What is FastAPI?")
-]
-
-futures = []
-
-for user_id, prompt in requests:
-    future = worker.submit(user_id, prompt)
-    futures.append(future)
-
-# Wait for every response
-for future in futures:
-    result = future.result(timeout=15)
-    print("Response:", result)
-
-worker.stop()
-
-print("All requests completed!")
+if __name__ == "__main__":
+    main()

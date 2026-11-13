@@ -111,10 +111,17 @@ services:
     environment:
       DEMO_SCENARIO: ${DEMO_SCENARIO:-cache}
       DEMO_REQUEST_TIMEOUT_SECONDS: ${DEMO_REQUEST_TIMEOUT_SECONDS:-180}
+      DEMO_INTENTS_PATH: /mnt/data/intents.json
+      DEMO_DATA_SEED: ${DEMO_DATA_SEED:-1}
+      DEMO_PARAPHRASE_SHARE: ${DEMO_PARAPHRASE_SHARE:-0.5}
+      DEMO_PERSONAL_SHARE: ${DEMO_PERSONAL_SHARE:-0.05}
+      DEMO_TIME_SHARE: ${DEMO_TIME_SHARE:-0.03}
+      DEMO_ZIPF_S: ${DEMO_ZIPF_S:-1.0}
     ports:
       - "127.0.0.1:8089:8089"
     volumes:
       - ./locust:/mnt/locust:ro
+      - ../eval/cost/data/intents.json:/mnt/data/intents.json:ro
     depends_on:
       - proxy
 

@@ -4,9 +4,10 @@ Locust creates concurrent HTTP requests. Prometheus scrapes each gateway replica
 Grafana displays the measurements. The existing `eval/` experiments remain the
 source for labelled correctness and estimated cost comparisons.
 
-Everything for this demonstration lives here. The only integration outside this
-folder is metrics wiring in `main.py`, one dependency in `requirements.txt`, and
-`COPY demo/` in the Dockerfile. Normal startup stays `main:app`.
+The demonstration configuration and monitoring live here. It runs the existing
+application, and Locust reads the same `eval/cost/data/intents.json` as the cost
+benchmark. Metrics are wired in `main.py` and `demo/` is included in the gateway
+image. Normal startup stays `main:app`.
 
 ## Choose one startup path
 
@@ -72,9 +73,11 @@ before switching scenarios. The start control is on the Locust page, not Grafana
    empty, the first request invokes the mock model and the next reuses the cache.
    Show the cache outcome and inference-call panels. A previously warmed cache may
    hit immediately; do not reset an existing application's cache to force a miss.
-4. Start Locust's default cache workload. It sends 60% repeated FAQ wording, 20%
-   paraphrases and 20% fresh numeric questions. These are **input percentages**,
-   not a promised 80% hit rate. Show measured hit ratio, latency and inference calls.
+4. Start Locust's default cache workload. It uses the evaluation's questions,
+   paraphrases, personal templates and time-sensitive prompts: approximately 92%
+   FAQ, 5% personal and 3% time-sensitive inputs. Half the FAQ inputs use a
+   paraphrase when available. These are **input percentages**, not promised hit
+   rates. Show measured hit ratio, latency and inference calls.
 5. Switch to `misses` or `scheduler` below. Show increasing queue depth and response
    latency as misses exceed the workers' service capacity. Explain the Redis
    round-robin scheduler. This live workload illustrates queueing; use the existing
@@ -90,6 +93,57 @@ One-second mock calls and three workers imply only a few completed misses per
 second. A warm cache can serve additional requests without inference. The demo
 does not set a target speedup: report what your machine actually measures.
 
+## Shared evaluation prompts
+
+The default `cache` scenario reads the canonical dataset at
+`eval/cost/data/intents.json`; there is no separate copy to keep in sync. Compose
+bind-mounts it read-only, and Kubernetes generates a separate ConfigMap from the
+same file. The dataset supplies FAQ questions, all their alternative wordings,
+personal templates and time-sensitive questions.
+
+Default sampling uses 5% personal, 3% time-sensitive and 92% FAQ inputs. Within FAQ
+inputs, half use a paraphrase when available. FAQ popularity uses Zipf exponent
+1.0. These match the cost evaluation's default category/phrasing assumptions, but
+Locust does not simulate companies, working days or the evaluation's virtual
+clock. A seeded live request stream also changes with concurrency and user count.
+
+The loader accepts `DEMO_DATA_SEED` (default 1), `DEMO_PARAPHRASE_SHARE` (0.5),
+`DEMO_PERSONAL_SHARE` (0.05), `DEMO_TIME_SHARE` (0.03) and `DEMO_ZIPF_S` (1.0).
+`DEMO_INTENTS_PATH` selects an explicit dataset path; the supplied deployments
+set it to `/mnt/data/intents.json`. Compose forwards these settings from the shell.
+For Kubernetes, use `kubectl set env deployment/demo-locust` to override sampling.
+
+Using the same prompts does **not** make Locust a correctness evaluator. Its
+success/failure checks still validate HTTP status and response structure, not
+whether the returned cached answer has the expected intent. Grafana displays live
+traffic and cache decisions; the labelled cost benchmark separately scores cache
+selection and generates cost estimates and graphs. The normal mock demo also
+does not replay the evaluation's recorded Gemini answers.
+
+To load the updated Locust code/data into an existing Kubernetes demo, stop the
+Locust test and run from the repository root:
+
+```powershell
+kubectl kustomize --load-restrictor LoadRestrictionsNone demo/k8s | kubectl --context kind-llm-gateway apply -f -
+kubectl --context kind-llm-gateway -n llm-gateway set env deployment/demo-locust DEMO_SCENARIO=cache
+kubectl --context kind-llm-gateway -n llm-gateway rollout status deployment/demo-locust --timeout=300s
+```
+
+This applies the monitoring/Locust manifests without changing the gateway's
+provider, replicas or cache. The generated ConfigMap hashes trigger a Locust pod
+rollout when its code or dataset changes. Restart its port-forward afterward:
+
+```powershell
+kubectl --context kind-llm-gateway -n llm-gateway port-forward service/demo-locust 8089:8089
+```
+
+For an existing Compose demo, restart only Locust:
+
+```powershell
+$env:DEMO_SCENARIO = "cache"
+docker compose -f demo/compose.yaml up -d --force-recreate locust
+```
+
 ## Change the workload (Compose)
 
 The same Locust file supports three scenarios. Stop the current test first:
@@ -101,12 +155,12 @@ docker compose -f demo/compose.yaml up -d --force-recreate locust
 
 | Scenario | Endpoint | Purpose |
 | --- | --- | --- |
-| `cache` (default) | `/chat` | Repeated FAQs, alternative wording and new questions |
+| `cache` (default) | `/chat` | Evaluation FAQs/paraphrases, personal templates and time-sensitive prompts |
 | `misses` | `/chat` | Changing printer/device codes; rule checks should prevent reuse |
 | `scheduler` | `/scheduler/chat` | Bypass semantic caching and coalescing to show queueing |
 
-Fresh numeric questions do not repeat for 81 million requests within one Locust
-process, but another run can overlap the cache. All virtual users keep their own
+In `misses` and `scheduler`, fresh numeric questions do not repeat for 81 million
+requests within one Locust process, but another run can overlap the cache. All virtual users keep their own
 user IDs and wait 1-3 seconds between requests. Each user has at most one request
 outstanding, so this is not the heavy-user burst experiment in `eval/`.
 
@@ -177,6 +231,10 @@ existing traffic first. `-SkipBuild` reuses an image you have already rebuilt.
 
 The context command selects the cluster for the following port-forward/watch
 examples. The startup script itself explicitly targets that context throughout.
+
+The startup script always selects **mock inference**. Re-running it after switching to Gemini
+switches the gateway back to mock. The monitoring dashboard works with either provider, but it
+does not read the CSVs or monetary estimates under `eval/cost/`; those are a separate experiment.
 
 The original application-only startup is `bash k8s/up.sh` (Git Bash/WSL), from the
 project root. It uses the configured Gemini provider/key, and does not add these

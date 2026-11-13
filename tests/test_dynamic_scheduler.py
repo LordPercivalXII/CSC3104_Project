@@ -5,10 +5,7 @@ import time
 
 from scheduler.fair_scheduler import FairShareScheduler
 
-scheduler = FairShareScheduler()
-
-
-def submit_requests():
+def submit_requests(scheduler):
     # Employee A submits three requests
     for i in range(1, 4):
         scheduler.add_request("A", f"A{i}")
@@ -31,7 +28,7 @@ def submit_requests():
     print("Employee C submitted 1 request")
 
 
-def process_requests():
+def process_requests(scheduler):
     processed = 0
 
     while processed < 6:
@@ -52,13 +49,16 @@ def process_requests():
         processed += 1
 
 
-producer = threading.Thread(target=submit_requests)
-consumer = threading.Thread(target=process_requests)
+def main():
+    scheduler = FairShareScheduler()
+    producer = threading.Thread(target=submit_requests, args=(scheduler,))
+    consumer = threading.Thread(target=process_requests, args=(scheduler,))
+    producer.start()
+    consumer.start()
+    producer.join()
+    consumer.join()
+    print("All requests processed!")
 
-producer.start()
-consumer.start()
 
-producer.join()
-consumer.join()
-
-print("All requests processed!")
+if __name__ == "__main__":
+    main()

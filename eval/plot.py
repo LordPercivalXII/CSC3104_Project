@@ -115,10 +115,21 @@ LIMIT = 9
 
 
 def calls_per_window(times, end):
-    """LLM calls started in the 60 s before each second t (mock LLM: answer time = call time)."""
+    """Successful response completions in (t - 60, t], evaluated at every event.
+
+    Completion timestamps cannot prove provider start-time quota compliance.
+    Event boundaries prevent a fractional-second peak being missed.
+    """
     times = sorted(times)
-    xs = list(range(0, int(end) + 2))
-    return xs, [sum(1 for t in times if x - 60 < t <= x) for x in xs]
+    xs = sorted(set([0, end, *times, *(t + 60 for t in times if t + 60 <= end)]))
+    left, right, counts = 0, 0, []
+    for x in xs:
+        while right < len(times) and times[right] <= x:
+            right += 1
+        while left < right and times[left] + 60 <= x:
+            left += 1
+        counts.append(right - left)
+    return xs, counts
 
 
 def rate_limit(rows, summary):
@@ -126,7 +137,8 @@ def rate_limit(rows, summary):
         return
     fig, ax = plt.subplots(figsize=(3.5, 2.3))
     summary.append(f"## E3 rate limit: 18 requests per minute for 2 minutes, limit set to {LIMIT} per minute\n")
-    summary.append("| Setup | Runs | Most LLM calls in any 60 s (per run) | Last answer (s) |")
+    summary.append("Response completion windows are measured here; provider call start times were not recorded.\n")
+    summary.append("| Setup | Runs | Most successful completions in any 60 s (per run) | Last answer (s) |")
     summary.append("| --- | --- | --- | --- |")
     groups = group_by(rows, "config", "trial")
     for config, label, colour, marker in E3_ORDER:
@@ -136,18 +148,21 @@ def rate_limit(rows, summary):
         peaks, ends = [], []
         for i, group in enumerate(trials):
             times = [r["done_s"] for r in group if r["status"] == 200]
+            if not times:
+                continue
             xs, ys = calls_per_window(times, max(times))
             peaks.append(max(ys))
             ends.append(max(times))
             ax.plot(xs, ys, color=colour, linewidth=1.6 if i == 0 else 0.8,
                     alpha=1 if i == 0 else 0.45, label=label if i == 0 else None,
                     marker=marker, markevery=20, markersize=3.5)
-        summary.append(f"| {label} | {len(trials)} | {', '.join(map(str, peaks))} | {statistics.mean(ends):.0f} |")
+        if ends:
+            summary.append(f"| {label} | {len(trials)} | {', '.join(map(str, peaks))} | {statistics.mean(ends):.0f} |")
     ax.axhline(LIMIT, color=INK_2, linewidth=1, linestyle="--")
     ax.annotate(f"limit {LIMIT} per minute", xy=(1, LIMIT), xycoords=("axes fraction", "data"),
                 xytext=(0, 3), textcoords="offset points", ha="right", fontsize=7, color=INK_2)
     ax.set_xlabel("Time since the first request (s)")
-    ax.set_ylabel("LLM calls in the last 60 s")
+    ax.set_ylabel("Successful completions in the last 60 s")
     ax.set_ylim(bottom=0)
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.2), ncol=2)
@@ -211,7 +226,8 @@ def duplicates(rows, summary):
     summary.append("## Duplicate questions: N people ask the same new question at once "
                    "(real Gemini, limit 10 per minute)\n")
     summary.append("Mean over runs of how many people got each kind of answer. "
-                   "Every \"new LLM call\" is one Gemini request.\n")
+                   "New LLM calls are inferred from successful non-cache, non-coalesced responses; "
+                   "failed executions and SDK retries are not counted by this CSV.\n")
     summary.append("| N | Sharing | Runs | New LLM calls | Shared answers | Semantic cache | Mean wait (s) |")
     summary.append("| --- | --- | --- | --- | --- | --- | --- |")
     for n in ns:
@@ -234,6 +250,12 @@ def group_by(rows, *keys):
 
 
 def main():
+    import argparse
+    global RESULTS
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--results", default=RESULTS, help="directory containing the run CSVs")
+    RESULTS = parser.parse_args().results
+    os.makedirs(RESULTS, exist_ok=True)
     summary = ["# Scheduler experiment results\n"]
     setups = os.path.join(RESULTS, "setups.csv")
     if os.path.exists(setups):

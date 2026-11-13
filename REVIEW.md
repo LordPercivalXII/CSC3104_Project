@@ -1,5 +1,75 @@
 # Smart AI Gateway: project status, handoff and review
 
+## Current handoff — 2026-11-13
+
+This section supersedes the historical status tables below. Work remains uncommitted on
+`docker-k8s-deployment`; no deployment, live Gemini requests, authentication or tenant features were added.
+The owner explicitly deferred identity and tenant isolation.
+
+| Findings | Current implementation |
+|---|---|
+| N1 | Leave-category conflict checks, including maternity/paternity misspellings and annual/sick leave |
+| N2–N3 | Broader temporal cues with narrow exceptions for stable procedures |
+| N4 | Contextual manager/boss checks allow general procedures while bypassing individual decisions |
+| S3, S7–S9 | Atomic Redis admission/coalescing and dequeue-to-lease; fenced completion, retained results, recovery limits, pending records without TTL |
+| S4 | Whole-route deadline, disconnect cancellation, global/per-user admission limits; bounded shutdown |
+| S5 | A queued shared call can use the earliest participant's round-robin turn |
+| S6 | Sliding-window behavior retained as default; optional `LLM_RATE_LIMIT_MODE=paced` prevents initial bursts |
+| S10 | Cancellation detaches followers and preserves a leader only while other callers need it |
+| S11–S12 | Generic API errors, rate-limited failures return 429 with Retry-After; Redis submit/cancel run off the event loop |
+| X2 | `/ready` checks the Qdrant collection and Redis; Kubernetes readiness uses it; `/health` remains liveness |
+| X3 | Terminal in-memory job records are pruned; each worker still correctly uses one stable result queue |
+| Evaluation | Portable frozen baseline, provenance and output hashes, offline imports, safe pytest collection, exact completion-window plotting |
+| S1, S2, C10 | Deferred: caller identity is still supplied by the client; no company isolation |
+
+Reliability is **at least once**, not exactly once: recovery after a lost provider outcome may repeat inference.
+Redis itself must retain its non-expiring pending/lease state; this is not a guarantee against Redis data loss.
+Old and new scheduler workers should not be mixed during a rollout: stop load, drain requests, then roll out.
+`/scheduler/chat` now has the same input limits and deadline, but remains a development endpoint without auth.
+
+Scheduler settings are environment variables: `SCHEDULER_REQUEST_TIMEOUT_SECONDS=120`,
+`SCHEDULER_LEASE_SECONDS=30`, `SCHEDULER_MAX_ATTEMPTS=2`, `SCHEDULER_MAX_PENDING=1000`,
+`SCHEDULER_MAX_PENDING_PER_USER=100`, `SCHEDULER_SHUTDOWN_TIMEOUT_SECONDS=5`,
+`REDIS_SOCKET_TIMEOUT_SECONDS=3`. Limits in Redis mode are shared across gateways; memory mode is per process.
+Inference already running in a Python thread cannot be forcibly stopped; cancelled callers no longer receive its
+result, while an uncancelled coalesced follower can still receive the shared answer.
+
+The full offline suite currently passes **279 tests and 89 subtests**, using fake models, in-memory Qdrant
+and fakeredis. New tests inject lost notifications, expired leases/status, late completion, cancellation,
+queue saturation, provider errors, disconnected clients, provenance changes and plotting boundary cases.
+No live Redis server or Kubernetes failure drill has been run for these fixes. Compose configurations,
+Kubernetes kustomizations, Bash syntax and Python compilation also validate.
+
+The end-to-end fixture smoke test completed six runs (no cache/old/new, two seeds), with 51 requests
+per configuration and no HTTP errors. It used the real embedding/verifier models with artificial fixture
+answers and prices. Fresh CSVs, provenance, tables and plots are under
+`eval/cost/results/review_verified/` (git-ignored). Both cache versions reused 33 of the 51 fixture answers;
+this small smoke test is not evidence of an accuracy improvement or real SME savings. Model commit IDs
+were not exposed by the locally loaded objects and are explicitly marked unavailable in the metadata.
+
+The historical cost/accuracy figures below describe older code, and the full raw outputs are absent here.
+Do not cite them as measurements of these fixes. The new pipeline smoke run uses artificial fixture
+recordings and prices; it cannot establish SME savings. Re-run the full main/sensitivity grids on the revised
+code and label real employee data separately before drawing a research conclusion.
+
+The live demo exercises the actual HTTP/cache/scheduler/distributed paths with mock inference by default.
+The cost benchmark evaluates cache reuse against authored intent labels sequentially with virtual time.
+Neither verifies that a Gemini answer is factually correct; neither substitutes for a real workload study.
+
+Locust's default cache scenario now reads the canonical `eval/cost/data/intents.json` in both deployment
+modes: 151 FAQ intents, 755 paraphrases, 25 personal templates and 20 temporal prompts. Its default input
+shares match the evaluation (92% FAQ, 5% personal, 3% temporal; half the FAQ inputs use paraphrases),
+with seeded Zipf popularity. The stdlib live sampler does not reproduce the offline NumPy stream,
+company/day model or virtual clock. It does not add correctness scoring or replay the recorded answers.
+Stress scenarios remain separate. Dataset identity and sampling settings are logged at Locust startup.
+The pinned Locust image loaded the mounted data successfully with networking disabled; no live load or
+cluster deployment was performed for this change. Apply the monitoring manifests and restart Locust to
+use the revised corpus in an existing deployment (commands in `demo/README.md`).
+
+---
+
+## Historical handoff (retained for context)
+
 *Last updated 2026-11-11. Base commit `2007299` on branch `docker-k8s-deployment`. **All work described here is uncommitted** in the working tree. Read this file first; it is written so a person or an AI model can continue the project without the original conversation.*
 
 **Contents**

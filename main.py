@@ -1,16 +1,18 @@
 import asyncio
 import os
+import threading
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from scheduler.factory import create_scheduler_worker
 from scheduler.redis_backend import RemoteInferenceError
+from scheduler.errors import QueueFullError, SchedulerTimeoutError, SchedulerUnavailableError
 
 from pathlib import Path
 # This annotated thing is a tool in Python's typing module used to add extra, custom metadata to type hints.
 from typing import Annotated, Optional
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, StringConstraints
@@ -29,6 +31,9 @@ from demo.telemetry import CONTENT_TYPE_LATEST, metrics
 
 # [gateway] in gateway.config: request limits and the decision log
 _gateway_cfg = get_settings().gateway
+_request_timeout_seconds = float(os.getenv("SCHEDULER_REQUEST_TIMEOUT_SECONDS", "120"))
+if _request_timeout_seconds <= 0:
+    raise ValueError("SCHEDULER_REQUEST_TIMEOUT_SECONDS must be positive")
 
 # The LLM ([llm] in gateway.config) answers cache misses, one request at a time in fair-share order
 # SCHEDULER_BACKEND=redis shares one queue between all gateway pods (see scheduler/factory.py)
@@ -58,19 +63,82 @@ metrics.configure(
 
 
 async def wait_for_llm(future):
-    """
-    Wait for the scheduler to return the LLM's answer, turning LLM failures into a 503.
-    """
+    """Translate scheduler/provider failures into bounded, generic API errors."""
     try:
-        return await asyncio.wrap_future(future)
+        return await asyncio.shield(asyncio.wrap_future(future))
+    except SchedulerTimeoutError:
+        raise HTTPException(status_code=504, detail="The request deadline was exceeded.") from None
+    except QueueFullError:
+        raise HTTPException(status_code=429, detail="The request queue is full; try again later.",
+                            headers={"Retry-After": "5"}) from None
+    except SchedulerUnavailableError:
+        raise HTTPException(status_code=503, detail="The request could not be completed; try again later.") from None
     # RemoteInferenceError: the LLM call failed on another pod (redis mode)
     except (LLMUnavailable, RemoteInferenceError) as exc:
-        print(f"LLM unavailable: {exc}")
+        print(f"LLM unavailable ({type(exc).__name__})")
         raise HTTPException(
-            status_code=503,
-            detail=str(exc),
+            status_code=429 if exc.rate_limited else 503,
+            detail="The AI service rate limit was reached." if exc.rate_limited else "The AI service is temporarily unavailable.",
             headers={"Retry-After": "60"} if exc.rate_limited else None,
         )
+
+
+async def _submit_and_wait(user_id, prompt, dedup=False):
+    cancelled, submitted = threading.Event(), []
+
+    def submit():
+        future = scheduler_worker.submit(user_id, prompt, dedup=dedup)
+        submitted.append(future)
+        if cancelled.is_set():
+            future.cancel()
+        return future
+
+    try:
+        future = await run_in_threadpool(submit)
+        return await wait_for_llm(future)
+    except asyncio.CancelledError:
+        cancelled.set()
+        for future in submitted:
+            await run_in_threadpool(future.cancel)
+        raise
+    except HTTPException:
+        raise
+    except QueueFullError:
+        raise HTTPException(status_code=429, detail="The request queue is full; try again later.", headers={"Retry-After": "5"}) from None
+    except Exception as exc:
+        print(f"Scheduler unavailable ({type(exc).__name__})")
+        raise HTTPException(status_code=503, detail="The request scheduler is temporarily unavailable.") from None
+
+
+async def _within_deadline(operation, request=None):
+    """Bound the whole route, including embedding, submission, queueing and inference."""
+    task = asyncio.create_task(operation)
+    watcher = None
+
+    async def disconnected():
+        while True:
+            # Starlette probes receive() inside its own AnyIO cancellation scope.
+            # Shield that short probe so it cannot swallow cancellation of this
+            # watcher and leave the route's final gather waiting indefinitely.
+            if await asyncio.shield(request.is_disconnected()):
+                return
+            await asyncio.sleep(0.2)
+
+    try:
+        if request is not None:
+            watcher = asyncio.create_task(disconnected())
+        done, _ = await asyncio.wait({task, watcher} if watcher else {task},
+                                     timeout=_request_timeout_seconds, return_when=asyncio.FIRST_COMPLETED)
+        if task in done:
+            return task.result()
+        if watcher is not None and watcher in done:
+            raise HTTPException(status_code=499, detail="The client disconnected.")
+        raise HTTPException(status_code=504, detail="The request deadline was exceeded.")
+    finally:
+        for pending in (task, watcher):
+            if pending is not None and not pending.done():
+                pending.cancel()
+        await asyncio.gather(*(p for p in (task, watcher) if p is not None), return_exceptions=True)
 
 
 @asynccontextmanager
@@ -79,7 +147,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        scheduler_worker.stop()
+        await run_in_threadpool(scheduler_worker.stop)
 
 
 app = FastAPI(lifespan=lifespan)
@@ -116,9 +184,8 @@ class ChatRequest(BaseModel):
         ),
     ]
 
-class SchedulerChatRequest(BaseModel):
-    user_id: str
-    prompt: str
+class SchedulerChatRequest(ChatRequest):
+    pass
 
 # "This answer was wrong" (POST /feedback)
 class FeedbackRequest(BaseModel):
@@ -207,6 +274,28 @@ def health():
     return {"status": "healthy"}
 
 
+@app.get("/ready")
+def ready():
+    """Dependency readiness; liveness remains independent at /health."""
+    try:
+        if not semantic_cache.client.collection_exists(semantic_cache.COLLECTION_NAME):
+            raise RuntimeError("Cache collection is missing")
+        if os.getenv("SCHEDULER_BACKEND", "memory").lower() == "redis":
+            import redis
+            from redis.backoff import NoBackoff
+            from redis.retry import Retry
+            client = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+                                          socket_connect_timeout=0.5, socket_timeout=0.5,
+                                          retry=Retry(NoBackoff(), 0))
+            try:
+                client.ping()
+            finally:
+                client.close()
+    except Exception:
+        raise HTTPException(status_code=503, detail="Gateway dependencies are not ready.") from None
+    return {"status": "ready"}
+
+
 @app.get("/metrics", include_in_schema=False)
 def prometheus_metrics():
     return Response(content=metrics.render(), headers={"Content-Type": CONTENT_TYPE_LATEST})
@@ -214,7 +303,11 @@ def prometheus_metrics():
 
 # Receive a user's prompt
 @app.post("/chat")
-async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
+async def chat(request: ChatRequest, background_tasks: BackgroundTasks, http_request: Request = None):
+    return await _within_deadline(_chat(request, background_tasks), http_request)
+
+
+async def _chat(request: ChatRequest, background_tasks: BackgroundTasks):
     started = time.perf_counter()
     user_prompt = request.prompt
     decision = _new_decision(request)
@@ -293,14 +386,9 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
 
     # Queue the cache miss and wait without blocking other HTTP requests.
     # Cacheable questions asked at the same time share one LLM call.
-    future = scheduler_worker.submit(
-        request.user_id,
-        user_prompt,
-        dedup=skip_reason is None,
-    )
     phase = time.perf_counter()
     try:
-        result = await wait_for_llm(future)
+        result = await _submit_and_wait(request.user_id, user_prompt, dedup=skip_reason is None)
     except HTTPException:
         # Background tasks do not run for an error response, so log straight away
         latency["llm"], latency["total"] = _ms_since(phase), _ms_since(started)
@@ -376,12 +464,7 @@ async def feedback(request: FeedbackRequest):
 
 # This is used for testing the scheduler without the caching.
 @app.post("/scheduler/chat")
-async def scheduler_chat(request: SchedulerChatRequest):
-    future = scheduler_worker.submit(
-        request.user_id,
-        request.prompt
-    )
-
-    result = await wait_for_llm(future)
-
+async def scheduler_chat(request: SchedulerChatRequest, http_request: Request = None):
+    result = await _within_deadline(_submit_and_wait(request.user_id, request.prompt), http_request)
+    result["source"] = source_name()
     return result

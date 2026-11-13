@@ -1,4 +1,4 @@
-# Tests concurrent HTTP requests through FastAPI
+# Manual live-server demonstration. Importing this module never sends requests.
 
 import asyncio
 import json

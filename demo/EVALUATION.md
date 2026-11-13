@@ -1,5 +1,12 @@
 # What the existing evaluation demonstrates
 
+Update for 2026-11-13: the revised runner now fails fast, requires exactly three Ready gateways,
+restores selected settings, uses fresh run directories and defaults to mock-only scenarios.
+The plotter now evaluates exact completion windows and labels them as completions. The cost
+benchmark now archives a portable baseline and validates provenance before resuming. These fixes
+do not retroactively validate or replace the saved historical measurements discussed below.
+See [../eval/README.md](../eval/README.md) and [../REVIEW.md](../REVIEW.md) for the current handoff.
+
 The `eval/` folder already generates traffic, records outcomes and creates graphs.
 Its saved graphs demonstrate the particular workloads and configurations recorded
 in their inputs. A graph does not establish that its labels, assumptions or
@@ -67,10 +74,11 @@ record commit `f0c9cbb`, not the later `dacbdf7` cache changes.
   aggregate results cannot be recomputed from the available files alone.
 - `fixtures/results/` contains tiny fake-data smoke tests. Those graphs are not
   the large research experiment or evidence of real Gemini quality/cost savings.
-- `bench.py --old-root` defaults to another machine's temporary directory. Set up
-  the documented old commit `2007299` separately and supply its path; the script
-  does not create that checkout automatically. The README's Python path is also
-  machine-specific. Analysis/plot dependencies must be installed separately.
+- Historical versions defaulted to another machine's temporary directory. The current runner archives
+  commit `2007299` automatically (`--old-ref` overrides it); no manual baseline checkout is required.
+  The current README uses a repository-relative Python path. Historical runner
+  versions needed a manually prepared baseline path. Analysis/plot dependencies
+  must be installed separately.
 - This sequential test does not exercise multi-pod Redis coordination, request
   coalescing or autoscaling. The no-cache cost baseline is computed without the app.
 - Cross-provider price comparisons reprice the recorded workload. They do not
@@ -88,3 +96,12 @@ multiple gateway replicas, cache outcomes, model-function executions and queuein
 They do not replace labelled correctness tests. A strong presentation uses the
 offline evaluation for the research comparison and the live demonstration to show
 how the deployed mechanism behaves.
+
+Locust's default `cache` scenario now reads the same `eval/cost/data/intents.json`
+as the cost evaluation. It uses the default 92% FAQ, 5% personal and 3% time-sensitive
+category mix, with 50% alternative wording within FAQ inputs where available and
+Zipf exponent 1.0. `misses` and `scheduler` remain separate generated stress cases.
+Sharing the corpus does not reproduce the offline workload's company/day model,
+virtual time or sequential execution, and Locust does not score expected intent.
+The mock demo generates mock answers; it does not use the evaluation's recorded
+Gemini responses. A visible hit in Grafana proves reuse occurred, not correct reuse.

@@ -19,6 +19,8 @@ spec:
           env:
             - {name: DEMO_SCENARIO, value: cache}
             - {name: DEMO_REQUEST_TIMEOUT_SECONDS, value: "180"}
+            - {name: DEMO_INTENTS_PATH, value: /mnt/data/intents.json}
+            - {name: DEMO_DATA_SEED, value: "1"}
           ports:
             - {name: http, containerPort: 8089}
           resources:
@@ -28,9 +30,12 @@ spec:
             httpGet: {path: /, port: http}
           volumeMounts:
             - {name: workload, mountPath: /mnt/locust, readOnly: true}
+            - {name: dataset, mountPath: /mnt/data, readOnly: true}
       volumes:
         - name: workload
           configMap: {name: demo-locust-code}
+        - name: dataset
+          configMap: {name: demo-locust-data}
 ---
 apiVersion: v1
 kind: Service

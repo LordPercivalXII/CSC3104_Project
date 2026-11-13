@@ -80,11 +80,7 @@ def _personal_data(prompt: str) -> str | None:
 
 def _personal_phrase(prompt: str) -> str | None:
     # The first personal_phrases entry found as whole words, or None
-    lowered = prompt.lower().replace("’", "'")
-    for phrase in _cfg.personal_phrase_list:
-        if re.search(r"\b" + re.escape(phrase) + r"\b", lowered):
-            return phrase
-    return None
+    return cache_checks.personal_phrase(prompt, _cfg.personal_phrase_list)
 
 
 def cache_skip_reason(prompt: str) -> str | None:
@@ -93,6 +89,11 @@ def cache_skip_reason(prompt: str) -> str | None:
     The cache is only for short, general questions: time-sensitive, long, pasted or personal
     prompts are answered fresh by the LLM every time and never stored.
     """
+    # Personal context takes precedence when several bypass rules apply.
+    phrase = _personal_phrase(prompt)
+    if phrase:
+        return f"personal context ({phrase})"
+
     if _cfg.skip_time_sensitive:
         word = cache_checks.time_sensitive(prompt)
         if word:
@@ -112,10 +113,6 @@ def cache_skip_reason(prompt: str) -> str | None:
         found = _personal_data(prompt)
         if found:
             return f"personal data: {found}"
-
-    phrase = _personal_phrase(prompt)
-    if phrase:
-        return f"personal context ({phrase})"
 
     # The embedding model ignores everything past its token limit, so two long prompts that
     # only differ near the end would look identical

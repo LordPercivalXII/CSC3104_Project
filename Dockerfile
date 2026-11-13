@@ -34,7 +34,7 @@ COPY smart_ai_gateway/ ./smart_ai_gateway/
 COPY demo/ ./demo/
 
 # Do not run as root
-RUN useradd --create-home --uid 1000 app
+RUN useradd --create-home --uid 1000 app && mkdir -p /app/data && chown app:app /app/data
 USER app
 
 # Document the application's listening port

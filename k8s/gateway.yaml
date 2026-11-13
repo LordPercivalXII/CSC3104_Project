@@ -64,12 +64,8 @@ spec:
             httpGet: {path: /health, port: 8000}
             periodSeconds: 5
             failureThreshold: 36
-          readinessProbe:                  # ready only if the app answers AND Qdrant is reachable
-            exec:
-              command:
-                - python
-                - -c
-                - "import os, urllib.request as u; u.urlopen('http://localhost:8000/health', timeout=3); u.urlopen(os.environ['QDRANT_URL'] + '/readyz', timeout=3)"
+          readinessProbe:                  # checks the collection and Redis; /health remains lightweight
+            httpGet: {path: /ready, port: 8000}
             periodSeconds: 5
             timeoutSeconds: 8
           livenessProbe:

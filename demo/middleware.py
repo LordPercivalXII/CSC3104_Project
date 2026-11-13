@@ -10,7 +10,7 @@ class GatewayMetricsMiddleware:
 
     async def __call__(self, scope, receive, send):
         path = scope.get("path", "")
-        if scope["type"] != "http" or path in ("/metrics", "/health", "/favicon.ico") or path.startswith("/static/"):
+        if scope["type"] != "http" or path in ("/metrics", "/health", "/ready", "/favicon.ico") or path.startswith("/static/"):
             return await self.app(scope, receive, send)
 
         started, status, recorded = time.perf_counter(), 500, False

@@ -79,7 +79,54 @@ _TIME_WORDS = {
     "today", "todays", "tonight", "tomorrow", "tomorrows", "yesterday", "now",
     "currently", "latest", "upcoming", "current", "recent", "recently", "newest",
 }
-_TIME_PHRASE = re.compile(r"\b(?:this|next|last) (?:week|weekend|month|quarter|year)\b")
+_DAYS = r"monday|tuesday|wednesday|thursday|friday|saturday|sunday"
+# Relative dates and the next occurrence of an event require fresh information.
+# Do not classify every use of "next": "next step" is an ordinary procedure.
+_TIME_PHRASE = re.compile(
+    r"\b(?:this|next|last)\s+(?:week|weekend|month|quarter|year|morning|afternoon|evening|night|"
+    + _DAYS + r")\b|\bon\s+(?:" + _DAYS + r")\b|"
+    r"\bat\s+(?:the|this)\s+moment\b|\bat\s+present\b|"
+    r"\bnext\s+(?:(?:company|team|staff|scheduled)\s+)?"
+    r"(?:(?:fire|evacuation|safety)\s+drill|all\s+hands(?:\s+meeting)?|town\s+hall|"
+    r"public\s+holiday|meeting|payday|maintenance\s+window|training\s+session|event)\b"
+)
+_CREDENTIAL = re.compile(r"\b(?:passwords?|passphrases?|pin)\b")
+_CREDENTIAL_ACTION = re.compile(r"\b(?:change|changing|reset|resetting|update|updating|replace|replacing|enter|entering)\b")
+_CURRENT_CREDENTIAL = re.compile(r"\bcurrent(?=\s+(?:passwords?|passphrases?|pin|one)\b)")
+_CARRY_ACTION = re.compile(r"\b(?:carry|carrying|roll|rolling|move|moving)\b")
+_LEAVE_BALANCE = re.compile(r"\b(?:leave|vacation|holiday|days)\b")
+_POLICY_CHANGE = re.compile(r"\b(?:change|changes|changing|changed|updated|announced|deadline|cutoff)\b")
+_TRANSFER_YEAR = re.compile(r"\b(into|to)\s+(?:the\s+)?next\s+year\b")
+
+# Explicit sibling categories are not interchangeable, even at high similarity.
+# Annual/sick need a leave-related phrase: "annual laptop service" should not
+# conflict with a question mentioning illness. These are vetoes, not inference
+# of someone's eligibility or family circumstances from indirect wording.
+_LEAVE_TYPES = {
+    "maternity": re.compile(r"\bmaternity\b"),
+    "paternity": re.compile(r"\bpaternity\b"),
+    "annual": re.compile(r"\b(?:annual|vacation|holiday)\s+(?:leave|days|time\s+off)\b"),
+    "sick": re.compile(r"\b(?:sick|medical)\s+(?:leave|days|time\s+off)\b"),
+}
+
+# A generic reference to a manager is not private by itself. Keep the default
+# bypass for individual decisions, named people and sensitive circumstances;
+# relax it only for an identifiable general procedure question.
+_MANAGER_REPORT = re.compile(
+    r"\bmy\s+(?:manager|boss)(?:\s+\w+){0,3}\s+"
+    r"(?:said|says|told|tells|asked|asks|asking|approv(?:ed|es|ing)|reject(?:ed|s|ing)|"
+    r"den(?:ied|ies|ying)|refus(?:ed|es|ing)|promis(?:ed|es|ing)|cancelled|canceled|"
+    r"cancels|threaten(?:ed|s|ing)|harass(?:ed|es|ing)|reduced|reduces|cut|cuts|assigned)\b", re.I)
+_MANAGER_NAME = re.compile(
+    r"(?i:\bmy\s+(?:manager|boss)\s+(?:(?:is|was|named|called)\s+)?)"
+    r"[A-Z][a-z]+\b")
+_SENSITIVE_MANAGER_CONTEXT = re.compile(
+    r"\b(?:harass\w*|bully\w*|discriminat\w*|grievance|salary|medical|diagnos\w*|performance\s+review)\b", re.I)
+_PROCEDURE_QUESTION = re.compile(r"\b(?:how|where|when|what|which|do|does|can|could|should|must|may|is|are)\b", re.I)
+_PROCEDURE_TOPIC = re.compile(
+    r"\b(?:permission|approval|approve|ask|notify|inform|contact|request|apply|application|"
+    r"submit|report|prepare|provide|required|require|need|procedure|process|policy|"
+    r"policies|support|counselling|certificate|paperwork|forms?)\b", re.I)
 
 
 # "turn on 2FA" -> "enable 2FA"; "turn my laptop off" -> "disable my laptop". The bare word
@@ -98,6 +145,10 @@ def _normalise(text: str) -> str:
     text = re.sub(r"\be[- ]mail\b", "email", text, flags=re.I)
     text = re.sub(r"(?<=[A-Za-z])-(?=[A-Za-z])", " ", text)  # sign-in -> sign in
     text = re.sub(r"\bback up\b", "backup", text, flags=re.I)         # "back up" -> "backup"
+    # Narrow spelling aliases for leave categories; avoid fuzzy edits that could
+    # turn a genuinely different short word into a protected category.
+    text = re.sub(r"\bmaternty\b", "maternity", text, flags=re.I)
+    text = re.sub(r"\bpaternty\b", "paternity", text, flags=re.I)
     text = _NUMBER_WORD.sub(lambda m: _NUMBER_WORDS[m.group(1).lower()], text)
     return _TURN.sub(lambda m: ("enable" if m.group(2).lower() == "on" else "disable") + m.group(1), text)
 
@@ -173,6 +224,11 @@ def conflict(prompt: str, cached_prompt: str) -> str | None:
     words_a, words_b = _words(prompt), _words(cached_prompt)
     stems_a, stems_b = {_stem(w) for w in words_a}, {_stem(w) for w in words_b}
 
+    leave_a = {kind for kind, pattern in _LEAVE_TYPES.items() if pattern.search(prompt.lower())}
+    leave_b = {kind for kind, pattern in _LEAVE_TYPES.items() if pattern.search(cached_prompt.lower())}
+    if leave_a and leave_b and leave_a != leave_b:
+        return f"different leave categories ({', '.join(sorted(leave_a))} / {', '.join(sorted(leave_b))})"
+
     for text, other in ((prompt, stems_b), (cached_prompt, stems_a)):
         # In a prompt typed all in capitals, capitals do not mark acronyms
         acronyms = not text.isupper()
@@ -204,11 +260,50 @@ def time_sensitive(prompt: str) -> str | None:
     """
     The word that makes the answer depend on when it is asked, or None.
     """
-    prompt = _normalise(prompt)
+    # Interpret these phrases before normalisation turns number words such as
+    # "one" into digits ("the current one" is a pronoun here).
     lowered = prompt.lower()
+    # "Now that I am back" supplies a reason, not a request for current facts.
+    # Remove only that cue, so "now that I am back, what is today's menu?"
+    # still bypasses the cache.
+    lowered = re.sub(r"\bnow(?=\s+that\b)", "", lowered)
+    clauses = re.split(r"([.!?;\n])", lowered)
+    for i in range(0, len(clauses), 2):
+        clause = clauses[i]
+        if _CREDENTIAL.search(clause) and _CREDENTIAL_ACTION.search(clause):
+            clause = _CURRENT_CREDENTIAL.sub("existing", clause)
+        # Leave carried into another year is a recurring policy question. A
+        # policy-change/deadline question still needs a fresh answer. The narrow
+        # replacement leaves any separate event/date cue in the same prompt.
+        if (_CARRY_ACTION.search(clause) and _LEAVE_BALANCE.search(clause)
+                and not _POLICY_CHANGE.search(clause)):
+            clause = _TRANSFER_YEAR.sub(lambda m: m.group(1) + " the following year", clause)
+        clauses[i] = clause
+    lowered = _normalise("".join(clauses))
     match = _TIME_PHRASE.search(lowered)
     if match:
         return match.group(0)
-    for word in sorted(_words(prompt) & _TIME_WORDS):
+    for word in sorted(_words(lowered) & _TIME_WORDS):
         return word
+    return None
+
+
+def personal_phrase(prompt: str, phrases: list[str]) -> str | None:
+    """First configured personal phrase, with narrow manager/boss FAQ exceptions.
+
+    This is a conservative cache-eligibility heuristic, not anonymisation or an
+    identity boundary. Other personal-data checks must still run independently.
+    """
+    text = prompt.replace("\u2019", "'").replace("\u2018", "'")
+    lowered = text.lower()
+    for phrase in phrases:
+        phrase = phrase.strip().lower()
+        if not phrase or not re.search(r"\b" + re.escape(phrase) + r"\b", lowered):
+            continue
+        if phrase in {"my manager", "my boss"}:
+            private = (_MANAGER_REPORT.search(text) or _MANAGER_NAME.search(text)
+                       or _SENSITIVE_MANAGER_CONTEXT.search(text))
+            if not private and _PROCEDURE_QUESTION.search(text) and _PROCEDURE_TOPIC.search(text):
+                continue
+        return phrase
     return None

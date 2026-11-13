@@ -25,7 +25,8 @@ the code is in `smart_ai_gateway/services/llm.py`.
   for instant placeholder answers.
 - **Running without Docker:** set the key in the shell first, e.g. in PowerShell
   `$env:GEMINI_API_KEY = "..."`, then `python -m uvicorn main:app --reload`.
-- **Failures:** a rate limit, timeout or blocked prompt returns HTTP 503 and nothing is cached.
+- **Failures:** a provider rate limit or full scheduler queue returns HTTP 429 with `Retry-After`;
+  an end-to-end request deadline returns 504; other unavailable-provider errors return 503. Nothing is cached.
   Server errors and overload (500, 502, 503) are retried `max_retries` times; timeouts and
   rate limits are not.
 - **Cached answers are tagged with the LLM that wrote them**, so after changing `provider` or `model`,
