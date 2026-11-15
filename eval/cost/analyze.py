@@ -10,6 +10,9 @@ Method
     saved = (tokens the request WOULD have cost) - (tokens actually sent to the LLM).
     saved_correct counts only hits that served the right answer (the headline number: a wrong
     answer is not a saving). saved_gross also counts wrong hits.
+    A failed request receives no avoided-call, token or cost credit. Actual inference work on
+    failed requests is still charged as waste. Token fractions retain the full request-stream
+    baseline denominator, so failed delivery cannot inflate the reported benefit.
   * Thinking tokens are billed per the price entry (thinking_billed_as: output | input | none).
   * Requests/month for a company = size * lam * workdays_per_month. The hit rate measured over the
     simulated D days (cold start included) is assumed to hold for the month.
@@ -109,12 +112,14 @@ def run_metrics(rs, prices):
     m = {"n": n, "error_rate": 1 - len(ok) / n, "hit_rate": len(hits) / n, "correct_hit_rate": len(right) / n,
          "wrong_rate": len(wrong) / n, "wrong_given_hit": len(wrong) / len(hits) if hits else float("nan"),
          "confusable_wrong_rate": sum(r["confusable_error"] for r in hits) / n,
-         "llm_calls": sum(r["llm_calls"] for r in rs), "llm_calls_avoided": n - sum(r["llm_calls"] for r in rs),
+         "llm_calls": sum(r["llm_calls"] for r in rs), "llm_calls_avoided": len(ok) - sum(r["llm_calls"] for r in rs),
          "synthetic_share": sum(r["synthetic"] for r in rs) / n,
          "cpu_per_req_s": statistics.fmean(max(r["cpu_s"] - r["cpu_baseline_s"], 0.0) for r in rs)}
     base_tok = sum(r["base_prompt_tokens"] + r["base_output_tokens"] + r["base_thinking_tokens"] for r in rs)
+    delivered_base_tok = sum(r["base_prompt_tokens"] + r["base_output_tokens"] + r["base_thinking_tokens"] for r in ok)
     act_tok = sum(r["llm_prompt_tokens"] + r["llm_output_tokens"] + r["llm_thinking_tokens"] for r in rs)
-    m["tokens_saved"], m["tokens_saved_frac"] = base_tok - act_tok, (base_tok - act_tok) / base_tok if base_tok else 0
+    saved_tok = delivered_base_tok - act_tok
+    m["tokens_saved"], m["tokens_saved_frac"] = saved_tok, saved_tok / base_tok if base_tok else 0
     hl = [r["gw_wall_ms"] for r in hits]
     ml = [r["gw_wall_ms"] + r["llm_latency_s"] * 1000 for r in ok if not r["hit"]]
     al = hl + ml
@@ -124,11 +129,16 @@ def run_metrics(rs, prices):
     for i, p in enumerate(prices["llm"]):
         g = c = 0.0
         for r in rs:
-            s = token_cost(r["base_prompt_tokens"], r["base_output_tokens"], r["base_thinking_tokens"], p) - \
-                token_cost(r["llm_prompt_tokens"], r["llm_output_tokens"], r["llm_thinking_tokens"], p)
+            actual_cost = token_cost(r["llm_prompt_tokens"], r["llm_output_tokens"], r["llm_thinking_tokens"], p)
+            baseline_cost = token_cost(r["base_prompt_tokens"], r["base_output_tokens"], r["base_thinking_tokens"], p) if r["status"] == 200 else 0
+            s = baseline_cost - actual_cost
             g += s
-            if r["hit"] and r["correct"] or not r["hit"]:
-                c += s  # misses contribute 0 anyway; only wrong hits are excluded
+            if r["status"] == 200 and (not r["hit"] or r["correct"]):
+                c += s
+            else:
+                # Wrong reuse and failed delivery earn no benefit, but their
+                # actual provider spend must not disappear from the accounting.
+                c -= actual_cost
         m[f"saved_gross_per_req|{i}"], m[f"saved_correct_per_req|{i}"] = g / n, c / n
     return m
 
@@ -282,7 +292,7 @@ def main():
         if cands:
             plot_h = min(cands, key=lambda l: next(h["usd_per_hour"] for h in hostings if hosting_label(h) == l))
         md += ["## Economics", "",
-               "Savings count correct hits only (`saved gross` also counts wrong hits). Net = savings - gateway CPU - fixed deployment cost, per company-month.", ""]
+               "Savings count correct hits only (`saved gross` also counts wrong hits). Failed requests receive no savings credit; any actual inference spend on them is charged as waste. Net = savings - gateway CPU - fixed deployment cost, per company-month.", ""]
         for h_label in ([plot_h] if plot_h else []):
             hh = next(h for h in hostings if hosting_label(h) == h_label)
             nodes, fixed = fixed_monthly(hh, a, prices)

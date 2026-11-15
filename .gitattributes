@@ -1,2 +1,5 @@
 # Shell scripts must keep Unix line endings to run in bash (also when edited on Windows)
 *.sh text eol=lf
+
+# Preserve benchmark artifact bytes so recorded SHA-256 values survive checkout.
+/eval/cost/results/paper_v1/** -text

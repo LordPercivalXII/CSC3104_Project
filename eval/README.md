@@ -1,5 +1,10 @@
 # Evaluation and live demonstration
 
+The completed [paper_v1 snapshot](cost/results/paper_v1/README.md) contains the main comparison,
+four paired direct-threshold experiments, raw CSVs/metadata and the shared findings/verification guide.
+Its original 0.90 run includes one documented HTTP 504. The analysis gives failed delivery no savings
+credit; no raw observation was removed. Verify the shared files with `python eval/cost/snapshot.py --check`.
+
 These tools answer different questions:
 
 | Tool | What it measures | Main limit |

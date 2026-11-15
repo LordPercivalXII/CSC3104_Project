@@ -33,6 +33,19 @@ compose.override.yaml
 # Gateway runtime logs (decision log, feedback log)
 /data/
 
-# Cost-benchmark generated output (regenerate with eval/cost/bench.py)
-eval/cost/results/
+# Generated experiments stay ignored, except the reviewed paper_v1 snapshot.
+eval/cost/results/*
+!eval/cost/results/paper_v1/
+eval/cost/results/paper_v1/*
+!eval/cost/results/paper_v1/README.md
+!eval/cost/results/paper_v1/comparison.json
+!eval/cost/results/paper_v1/comparison.png
+!eval/cost/results/paper_v1/snapshot_manifest.json
+!eval/cost/results/paper_v1/main/
+!eval/cost/results/paper_v1/threshold_0.90/
+!eval/cost/results/paper_v1/threshold_0.95/
+!eval/cost/results/paper_v1/threshold_0.97/
+!eval/cost/results/paper_v1/threshold_0.99/
+# Interrupted output files are never research artifacts.
+eval/cost/results/paper_v1/**/raw/*.tmp
 eval/runs/

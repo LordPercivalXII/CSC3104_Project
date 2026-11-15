@@ -1,6 +1,33 @@
 # Smart AI Gateway: project status, handoff and review
 
-## Current handoff — 2026-11-13
+## Evaluation handoff — 2026-11-15
+
+The owner completed the main and four threshold experiments. The curated
+[paper_v1 snapshot](eval/cost/results/paper_v1/README.md) now includes all 35 raw CSVs and their
+metadata, per-experiment reports and a combined comparison. The raw records pass hash, seed/count
+and paired-stream checks. The recorded application source is `6476b9a`; the old baseline is `2007299`.
+Earlier implementation fixes are already in `6476b9a`. This new snapshot/analysis change is prepared
+for review in GitHub Desktop; no commit or push has been made by the assistant.
+
+The revised gateway reduced pooled wrong cache reuse from 1,146 to 169 out of 78,363 requests per
+configuration. Thresholds 0.95, 0.97 and 0.99 returned identical cache outcomes on the sweep's paired
+streams. Do not call one uniquely optimal. Threshold 0.90 has one preserved HTTP 504 after a prolonged
+wall-time gap (seed 2, request index 303); its cause is unknown. Corrected `analyze.py` gives failed
+delivery no beneficial avoided-call/token/cost credit and charges actual inference waste. Only derived
+reports were regenerated; no raw record was changed or silently dropped.
+
+`.gitignore` allows only the five final experiment directories and root comparison/manifest/README.
+Pilot, old smoke/debug outputs and `eval/runs/` remain ignored. `.gitattributes` preserves snapshot
+bytes so checksums survive Git checkout. Verify with `python eval/cost/snapshot.py --check` before
+sharing. Exact model revisions remain unavailable, and pricing/hosting entries still require official
+verification before monetary paper claims. See the snapshot README for the next research steps.
+
+Validation after the accounting fix: **286 tests and 89 subtests passed**. The 99-file snapshot is about
+112 MiB; the largest file is 7.35 MiB. The manifest checks all 98 non-manifest artifacts and all 35 raw
+CSV/metadata pairs. Git's clean filter preserves raw CSV bytes, and the credential-pattern scan found
+no matches. No live LLM calls, Kubernetes deployment, Git staging, commit or push was performed.
+
+## Implementation handoff — 2026-11-13 (historical)
 
 This section supersedes the historical status tables below. Work remains uncommitted on
 `docker-k8s-deployment`; no deployment, live Gemini requests, authentication or tenant features were added.

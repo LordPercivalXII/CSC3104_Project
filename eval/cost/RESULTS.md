@@ -1,5 +1,9 @@
 # Does a semantic prompt cache save an SME money? Benchmark results
 
+The revised experiments are documented in [paper_v1/README.md](results/paper_v1/README.md).
+Use that snapshot for the new findings and the qualified threshold comparison. The report below
+remains historical; it has not been rewritten with the new measurements.
+
 > Historical report, not a rerun of the code revised on 2026-11-13. The full raw benchmark runs cited here
 > are absent from this checkout; only the small artificial fixture outputs are checked in. The figures below
 > have been retained for reference and have not been independently reproduced by the review fixes.
