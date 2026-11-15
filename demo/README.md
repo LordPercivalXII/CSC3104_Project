@@ -19,8 +19,10 @@ are a separate alternative, not another step after starting Kubernetes.**
 | Kubernetes (kind) | `.\demo\start-kubernetes.ps1` | http://localhost:8080 | `http://gateway` |
 | Docker Compose alternative | `docker compose -f demo/compose.yaml up --build -d` | http://localhost:8001 | `http://proxy` |
 
-For Kubernetes, continue with [First Kubernetes setup on Windows](#first-kubernetes-setup-on-windows)
-and its port-forwards. If your chatbot, Prometheus, Grafana and Locust are already
+For a first Kubernetes setup, continue with [First Kubernetes setup on Windows](#first-kubernetes-setup-on-windows)
+and its port-forwards. If the demo is already installed and its node containers
+were stopped, use [Resume a stopped cluster](#resume-a-stopped-cluster) instead.
+If your chatbot, Prometheus, Grafana and Locust are already
 open and working through Kubernetes, startup is complete; do not run Compose.
 Both alternatives use local ports 3000, 9090 and 8089, so run only one at a time.
 Sections marked Compose apply only to the Compose alternative.
@@ -197,7 +199,7 @@ The inference counter measures scheduler inference executions, including failure
 not individual SDK retry attempts or invoices. Return to mock by setting
 `DEMO_LLM_PROVIDER=mock`, `DEMO_LLM_RATE_LIMIT_PER_MINUTE=0` and recreating gateway.
 
-## Add the dashboard to the existing Kubernetes deployment
+## Kubernetes demo (kind)
 
 ### First Kubernetes setup on Windows
 
@@ -209,12 +211,56 @@ Your standalone `smart-qdrant` container remains separate; the cluster creates i
 own Qdrant and Redis with their own persistent volumes.
 
 Prerequisites: Docker Desktop running Linux containers, plus `kind` and `kubectl`
-on PATH. Check with `kind version` and `kubectl version --client`. Official install
-guides: https://kind.sigs.k8s.io/docs/user/quick-start/ and
+on PATH. Teammates should first pull the `docker-k8s-deployment` branch in GitHub
+Desktop and open PowerShell in the repository root (the folder containing `demo/`
+and `k8s/`, not inside `demo/`). Check the prerequisites:
+
+```powershell
+docker info
+kind version
+kubectl version --client
+```
+
+Official install guides: https://kind.sigs.k8s.io/docs/user/quick-start/ and
 https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/.
 
-For a new or existing **llm-gateway kind cluster**, start the complete mock demo
-from the repository root with one PowerShell command:
+The default mock demo needs no local Python virtual environment or Gemini API
+key. The image build installs the application dependencies and downloads its
+embedding/verifier models. The first startup needs internet access and can take
+longer than later runs. You do not need to rerun the evaluation benchmarks.
+
+### Resume a stopped cluster
+
+**Skip this step on a teammate's first setup.** If you previously stopped the
+three `llm-gateway` node containers, start Docker Desktop and then run:
+
+```powershell
+docker start llm-gateway-control-plane llm-gateway-worker llm-gateway-worker2
+kubectl config use-context kind-llm-gateway
+kubectl --context kind-llm-gateway get nodes
+```
+
+Repeat the `get nodes` command until the API responds and all three nodes show
+`Ready`. Kubernetes resumes the existing deployment. Check its pods:
+
+```powershell
+kubectl --context kind-llm-gateway -n llm-gateway get pods
+```
+
+Once the gateway, Qdrant, Redis and monitoring pods are ready, go directly to
+[Open the demo pages](#open-the-demo-pages) and restart the three port-forwards.
+**You do not need to rerun `start-kubernetes.ps1` for a normal restart.**
+
+The startup script creates a missing cluster; it does not restart stopped node
+containers. These containers are Kubernetes nodes, not gateway application
+replicas. The deployment starts three gateway pods and can scale to six through
+its HPA.
+
+### Start the complete mock demo
+
+Use this for the first setup, to apply code/configuration updates, or to restore
+the mock demo after changing the deployment. For an existing cluster, its node
+containers must already be running. Run from the repository root:
 
 ```powershell
 .\demo\start-kubernetes.ps1
@@ -227,20 +273,60 @@ Prometheus, Grafana and Locust. All kubectl mutations explicitly target
 `kind-llm-gateway`. The default mock overlay works without an API key, switches the
 gateway to a separate demo collection/queue and suspends the regular cache-sweep
 CronJob. **It changes an existing llm-gateway deployment to demo mode.** Stop any
-existing traffic first. `-SkipBuild` reuses an image you have already rebuilt.
+existing traffic first. Use `-SkipBuild` only when `smart-gateway:dev` is already
+built locally from the current code and model configuration.
 
-The context command selects the cluster for the following port-forward/watch
-examples. The startup script itself explicitly targets that context throughout.
+The context command selects the cluster for the later watch/advanced examples.
+The startup script itself explicitly targets that context throughout. Wait for
+the script to print **Mock Kubernetes demo ready** before continuing.
 
 The startup script always selects **mock inference**. Re-running it after switching to Gemini
 switches the gateway back to mock. The monitoring dashboard works with either provider, but it
 does not read the CSVs or monetary estimates under `eval/cost/`; those are a separate experiment.
 
+### Open the demo pages
+
+Keep each of these commands running in its own PowerShell terminal. They block
+while forwarding, so do not paste all three into one terminal.
+
+Terminal 1 (Grafana):
+
+```powershell
+kubectl --context kind-llm-gateway -n llm-gateway port-forward service/demo-grafana 3000:3000
+```
+
+Terminal 2 (Prometheus):
+
+```powershell
+kubectl --context kind-llm-gateway -n llm-gateway port-forward service/demo-prometheus 9090:9090
+```
+
+Terminal 3 (Locust):
+
+```powershell
+kubectl --context kind-llm-gateway -n llm-gateway port-forward service/demo-locust 8089:8089
+```
+
+| Page | Kubernetes address |
+| --- | --- |
+| Chat | http://localhost:8080 |
+| Grafana | http://localhost:3000/d/gateway-demo |
+| Prometheus targets | http://localhost:9090/targets |
+| Locust | http://localhost:8089 |
+
+Grafana login: **admin / demo-local-password**. In Locust, start with **2 users**,
+**1 user/second**, and Host **`http://gateway`**. Click Start to generate traffic;
+startup does not start a load test. The default `cache` workload uses the shared
+evaluation dataset, while inference uses the mock provider. Wait about a minute
+for rate panels to populate, then follow [A five-minute presentation](#a-five-minute-presentation).
+
+### Restore the normal Gemini application
+
 The original application-only startup is `bash k8s/up.sh` (Git Bash/WSL), from the
 project root. It uses the configured Gemini provider/key, and does not add these
 monitoring services. On Windows, the PowerShell demo command avoids requiring Bash.
 
-Continue with the port-forwards below. For a script-created mock deployment,
+For a script-created mock deployment,
 restoring the regular application requires reapplying the base **and explicitly
 removing** demo command/env overrides and the CronJob suspension. When you
 intentionally want to restore the base Gemini deployment, stop the demo load,
@@ -256,7 +342,11 @@ kubectl --context kind-llm-gateway -n llm-gateway rollout status deployment/gate
 These patches restore the base settings rather than any custom overrides you
 had before the demo. This is different from undoing one optional deployment patch.
 
-### Existing instrumented cluster
+### Advanced: add monitoring to an existing application
+
+**Skip this section if you used `start-kubernetes.ps1`; it already installs the
+application and monitoring.** These steps add monitoring to a separately managed
+gateway deployment.
 
 Select `kind-llm-gateway` with `kubectl config use-context kind-llm-gateway` before
 using the following commands against this repository's kind cluster.
@@ -299,16 +389,8 @@ kubectl -n llm-gateway rollout status deployment/gateway --timeout=300s
 other gateway deployments. Reapplying the base manifest alone is not a reliable
 way to remove fields introduced by an imperative patch.
 
-Use one terminal for each port-forward (stop them with Ctrl+C):
-
-```powershell
-kubectl -n llm-gateway port-forward service/demo-grafana 3000:3000
-kubectl -n llm-gateway port-forward service/demo-prometheus 9090:9090
-kubectl -n llm-gateway port-forward service/demo-locust 8089:8089
-```
-
-Locust's Kubernetes host is **http://gateway**. The existing chat remains at the
-cluster's normal address (kind setup: http://localhost:8080). To change its workload:
+Use the three port-forwards under [Open the demo pages](#open-the-demo-pages).
+Locust's Kubernetes host is **http://gateway**. To change its workload:
 
 ```powershell
 kubectl -n llm-gateway set env deployment/demo-locust DEMO_SCENARIO=scheduler
@@ -359,13 +441,27 @@ docker compose -f demo/compose.yaml down
 
 This leaves Compose demo data volumes in place.
 
-For **Kubernetes**, press Ctrl+C in any running startup or port-forward terminals.
-To temporarily stop the complete kind cluster while retaining its node containers
-and stored data:
+For **Kubernetes**, press Ctrl+C in each port-forward terminal. This stops the
+forwards; the application and monitoring pods keep running. To temporarily stop
+the complete kind cluster while retaining its node containers and stored data:
 
 ```powershell
 docker stop llm-gateway-worker llm-gateway-worker2 llm-gateway-control-plane
 ```
+
+Stopping the nodes does not shut down Docker Desktop's WSL VM. If you also want
+to release that memory, save work in any WSL distributions first, then run:
+
+```powershell
+docker desktop stop
+wsl --shutdown
+wsl --list --running
+```
+
+`wsl --shutdown` stops all WSL distributions. If your Docker Desktop version lacks
+the `docker desktop stop` command, choose **Quit Docker Desktop** from its system
+tray menu before running `wsl --shutdown`. Closing its window is not the same as
+quitting it. Resume the demo with the stopped-cluster steps above.
 
 `docker compose down` does not stop the Kubernetes cluster. Kubernetes monitoring can be removed with
 the same rendered kustomization passed to `kubectl delete -f -`; that removes only
