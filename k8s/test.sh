@@ -2,6 +2,8 @@
 # Checks: 3 gateway pods + Qdrant, load balancing, shared semantic cache, self-healing, cache aging.
 URL=${URL:-http://localhost:8080}
 NS=llm-gateway
+# Git Bash on Windows rewrites /paths inside kubectl exec commands (/etc/... -> C:/Program Files/Git/etc/...)
+export MSYS_NO_PATHCONV=1
 
 # ask <user> <question>  ->  "source=<semantic_cache|gemini|mock_llm> score=<similarity>"
 ask() {

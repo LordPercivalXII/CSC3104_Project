@@ -1,0 +1,151 @@
+{
+  "created_utc": "2026-11-19T14:19:12.799673+00:00",
+  "csv_sha256": "7748797fac085dc80cc35fe9d2cbe004257a24f1dc5cdc6a45aa1afbb20c372a",
+  "effective_settings": {
+    "gateway": {
+      "decision_log_enabled": false,
+      "decision_log_path": "data/decisions.jsonl",
+      "prompt_max_length": 4000,
+      "user_id_max_length": 128
+    },
+    "llm": {
+      "max_output_tokens": 2048,
+      "max_retries": 1,
+      "model": "gemini-3.5-flash-lite",
+      "provider": "mock",
+      "system_instruction": "You are the internal helpdesk assistant for company employees, answering IT, HR and workplace questions. Answer clearly and concisely in plain text, without Markdown formatting. Your answers are saved and reused for other employees who ask the same question, so do not address anyone by name or refer to earlier messages. If a question needs company-specific information you do not have, give general guidance and suggest contacting the IT or HR helpdesk.",
+      "thinking_level": "minimal",
+      "timeout_seconds": 30
+    },
+    "scheduler": {
+      "mock_llm_response_template": "Generated AI response to: {prompt}"
+    },
+    "semantic_cache": {
+      "cache_max_prompt_chars": 300,
+      "cache_max_prompt_lines": 3,
+      "collection_name": "semantic_cache",
+      "decay_half_life_seconds": 0,
+      "embedding_dim": 384,
+      "embedding_model": "BAAI/bge-small-en-v1.5",
+      "feedback_path": "data/feedback.jsonl",
+      "max_age_seconds": 604800,
+      "max_paraphrases": 5,
+      "other_model_grace_seconds": 604800,
+      "paraphrase_duplicate_similarity": 0.99,
+      "personal_phrases": "my manager, my boss, my payslip shows, my salary is, my contract says, my performance review, my medical, my sick note, my employee id, my employee number, for employee, on behalf of, my name is, summarise this, summarize this, this email, the attached, the following text",
+      "qdrant_timeout_seconds": 3,
+      "qdrant_url": "http://localhost:6333",
+      "search_candidates": 5,
+      "similarity_threshold": 0.95,
+      "skip_personal_data": true,
+      "skip_time_sensitive": true,
+      "sliding_ttl": true,
+      "sweep_interval_seconds": 3600,
+      "ttl_seconds": 86400,
+      "verifier_model": "cross-encoder/quora-roberta-base",
+      "verifier_threshold": 0.5,
+      "verify_threshold": 0.75
+    }
+  },
+  "identity": {
+    "code": {
+      "content_sha256": "c3afdb118e956cdcaeaa4f2e222ddcd5ceb153f6bea5ed9661ee22e3339a659e",
+      "files_sha256": {
+        "demo/__init__.py": "3dc31f276dd9da7fddc52f683bdec24fe3c5ad227e9d02aaf45ed9b37f47d786",
+        "demo/app.py": "5f9215c923588eafda2dd6ad389940da3c1b7a11c185de262a02bdbb53de4868",
+        "demo/locust/locustfile.py": "db340fc1300861222e3043f071148eb4db03d62fdbaead8140f2370c4199201c",
+        "demo/locust/workloads.py": "a153a80d6b429f66fb1b627b49faec7c495603c215cd69af80db431cfbecc67c",
+        "demo/middleware.py": "be1a17050a9834d312476ee62b842c11a7d87f3496dd6a98bfd50b1bd45fbae2",
+        "demo/telemetry.py": "19c51becb726bf659977a9617a3d0a2ac2a09557374378e8668e93c42e5b8fd2",
+        "demo/tests/test_gateway_integration.py": "ad4dbc13dda4290f01923072b4c2cfc8718789320e001bbf7e5a7c24dc32a027",
+        "demo/tests/test_telemetry.py": "108d6cc506415bf81041cc996a3509b9f64a6193f31db447dc0fd5b518752582",
+        "demo/tests/test_workloads.py": "34ab361729f81b0ba05aa05f644d7f2ecb02ec0f1c140ac2438d25752dad7d97",
+        "main.py": "5ffdf82a4792ac25cd9cc9f5e6d1cc459ede3c33827a0b3713cf0689d1ed8622",
+        "requirements.txt": "32ca25d0adff60e9f5dd8b57ab8ed372180bc885d0b6d0fecf85713c8a3268f5",
+        "scheduler/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "scheduler/errors.py": "15e73cc12cc48d3b18db28d860ce10a40e232441188114cd09556ad3afd56694",
+        "scheduler/factory.py": "1fa0666d6898cc065925d0e046341a33ac4b96b3dd331485496b9aafa5fa2d78",
+        "scheduler/fair_scheduler.py": "43af443934bf6abe98ecfb8375eaaf1b50bde3a504621caa0f313082583c491f",
+        "scheduler/job_store.py": "fc1edd6063e46e5157b8fbc8db792abe150189f7c24f0d3f3d161fc819623039",
+        "scheduler/rate_limiter.py": "877a9397fcd44c8ab6bb93ac6174cd7142cd22746a6d6a5a5ed6b17c42cc7144",
+        "scheduler/redis_backend.py": "2991cef23846a8ef4525363ada64f8c523d69e7d20a45ed4459ac9cd3192dd3f",
+        "scheduler/redis_scripts.py": "89f660f2bfad8e09fc40dd4ac0ebc2baf72b716f4db18c2da28bf98f3f6c9a4f",
+        "scheduler/reliability.py": "079e4baf62994096c7d6093d49190abe0cbacfac6006c6f2eec49dbb4b73a190",
+        "scheduler/scheduler_worker.py": "696ac83642d483ba248573e9b8aaa4977558b6bcfed010cbd21a87bf5a84eb33",
+        "smart_ai_gateway/__init__.py": "b5093ea24a6aa1ece5cf03b9d7f1d045af08dc223a6bbaaf82f243715bd0de0e",
+        "smart_ai_gateway/config.py": "1c88dbb762b5e0b7ac1b6ab5700a51ce60c0aaea4fbc6db7728599dfe48bf8ac",
+        "smart_ai_gateway/connection_recycling.py": "135979518a27c6750d04bf52ee66951b0313c35e9e3c626ab9a9d7c456ac27ef",
+        "smart_ai_gateway/gateway.config": "4b0ccf533ad319b23ecf56362fe5b2ffaccdaf072cdc5860350794f6a586c08c",
+        "smart_ai_gateway/scripts/backfill_cache_timestamps.py": "d1eace7ec0d55e1cdec7e3df5f6b5850f947fcd0f18d96a5c90b04547c1a73a6",
+        "smart_ai_gateway/scripts/cache_matching_pairs.py": "aa0c7cdac9b5542a372c3a2abc44e359bb90fc90a0067c445104d225c78f236b",
+        "smart_ai_gateway/scripts/evaluate_cache_matching.py": "1dc050496092cd2669444a8ff591a4c35ea2478f96e92ac134607f8705b8154b",
+        "smart_ai_gateway/scripts/setup_qdrant.py": "00d7e503e8d8b79972fc10d2595df04ad1c20b5eb0921888466c5819989c8ae1",
+        "smart_ai_gateway/scripts/sweep_expired_cache.py": "a334e1271c6384dcbe1b2d4dd1da2fd7302fb9c1ec9a3adbdec298600ea6bad3",
+        "smart_ai_gateway/scripts/try_semantic_cache.py": "fa5436179a935a89cdd6077390e1318ca263f096c711d1d6d407f5cc52b661db",
+        "smart_ai_gateway/services/__init__.py": "8432f4539f039e5f691e52a586d3df99455c0e1ac729b67ec74b8bcc3b1cb875",
+        "smart_ai_gateway/services/cache_aging.py": "673409ac166ac10ad376709a3324212857523b48d9ce4177213ad1df23bfcc10",
+        "smart_ai_gateway/services/cache_checks.py": "c957aaad4465ee069ef982abf87fc617bb23312ef1eb36fcbaa79cf3614d57ed",
+        "smart_ai_gateway/services/clear_semantic_cache.py": "2b3a37808f3772f9e73750f0eb506abdae1eb4becc9b9e870107bb64bd90d266",
+        "smart_ai_gateway/services/llm.py": "569f41cb47efe4f7a5300d999155ef47527ea55292c01a9565f06f9c20d7097f",
+        "smart_ai_gateway/services/semantic_cache.py": "59e51633bba37641256584ddc5c059833ac79dedd97200956f55efa792d58595"
+      },
+      "git_commit": "ffcd49e9ada2e5e16bbcb514d1d22b5cf31fab78"
+    },
+    "config": "new",
+    "days": 20,
+    "env_overrides": [
+      "GW_SEMANTIC_CACHE_SIMILARITY_THRESHOLD=0.95",
+      "GW_SEMANTIC_CACHE_VERIFIER_THRESHOLD=0.50",
+      "GW_SEMANTIC_CACHE_VERIFY_THRESHOLD=0.75"
+    ],
+    "harness_sha256": {
+      "bench.py": "68ebc4e4b598fb067a5e3fff38ee3db2f92e9b1051f6340c0241575cc4c018ce",
+      "provenance.py": "5f4d6a37563adf68ce82e38f5e985c110b8b68c35d1e6a93f02878dd970532e9",
+      "replay.py": "c1dd06d1781dc99387f8d0a99b28f683e56b3261c0e024be1af9969f26b35416",
+      "workload.py": "1abe2c61223e866b12f29bca393b04001e9d3e5646934b41e8d958b02181372e"
+    },
+    "inputs": {
+      "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+      "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+    },
+    "isolation": "per_company",
+    "lam": 3.0,
+    "loaded_models": {
+      "embedding": {
+        "configured_name": "BAAI/bge-small-en-v1.5",
+        "resolved_revisions": [],
+        "revision_status": "unavailable"
+      },
+      "verifier": {
+        "configured_name": "cross-encoder/quora-roberta-base",
+        "resolved_revisions": [],
+        "revision_status": "unavailable"
+      }
+    },
+    "paraphrase_share": "0.5",
+    "personal_share": 0.05,
+    "seed": 1,
+    "sizes": [
+      50
+    ],
+    "time_share": 0.03,
+    "torch_threads": 1,
+    "variation": 0.0,
+    "versions": {
+      "fastapi": "0.164.0",
+      "httpx": "0.28.1",
+      "numpy": "2.4.6",
+      "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+      "python": "3.11.18",
+      "qdrant-client": "1.20.0",
+      "sentence-transformers": "6.3.0",
+      "starlette": "1.10.0",
+      "torch": "2.15.0+cpu"
+    },
+    "zipf_s": "1.0"
+  },
+  "identity_sha256": "e3efd7326ba911d2a889f874cecf61a4268607dcaad895e8bd19e33eb8a8a2c0",
+  "measurement": "sequential offline replay; virtual cache time",
+  "request_count": 3045,
+  "schema_version": 2
+}

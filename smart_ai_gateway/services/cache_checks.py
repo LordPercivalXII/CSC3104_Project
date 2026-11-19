@@ -149,6 +149,28 @@ _LEAVE_TYPES = {
     "annual": re.compile(r"\b(?:annual|vacation|holiday)\s+(?:leave|days|time\s+off)\b"),
     "sick": re.compile(r"\b(?:sick|medical)\s+(?:leave|days|time\s+off)\b"),
 }
+# An employee's own pay and a supplier's invoice are different questions, even when both ask
+# "who do I ask about a payment". The benchmark served "my pay is wrong this month" with an
+# invoice-status answer.
+_PAYMENT_TYPES = {
+    "payroll": re.compile(r"\b(?:salary|salaries|payslips?|pay\s+slips?|wages?|paychecks?|payroll|my\s+pay|less\s+pay|paid\s+the\s+wrong)\b"),
+    "invoice": re.compile(r"\b(?:invoices?|invoiced|invioce|suppliers?|vendors?)\b"),
+}
+# Asking how to report a suspicious message is not the same as having already acted on one
+# ("I clicked a link and entered my password"): the second needs an urgent password reset.
+# Applied only when a prompt mentions a suspicious message; negated actions ("I haven't
+# clicked anything") do not count as having acted.
+_SUSPICIOUS = re.compile(r"\b(?:phish\w*|phising|suspicious|dodgy|odd|weird|scam\w*|spam|fake|bad\s+link)\b")
+_ACTED_ON = re.compile(
+    r"\b(?:clicked|clickd|followed\s+(?:a|the)\s+link|entered|typed|put\s+in|submitted|"
+    r"gave\s+(?:them|it|my)|opened\s+(?:a|an|the)\s+attachment|downloaded|got\s+phished)\b")
+_NOT_ACTED = re.compile(
+    r"\b(?:not|never|haven't|havent|have\s+not|didn't|didnt|did\s+not|hasn't|hasnt)\s+(?:\w+\s+)?"
+    r"(?:clicked|clickd|followed|entered|typed|put|submitted|opened|downloaded)\b")
+
+
+def _acted_on_message(text: str) -> bool:
+    return bool(_ACTED_ON.search(_NOT_ACTED.sub(" ", text)))
 
 # A generic reference to a manager is not private by itself. Keep the default
 # bypass for individual decisions, named people and sensitive circumstances;
@@ -269,6 +291,15 @@ def conflict(prompt: str, cached_prompt: str) -> str | None:
     leave_b = {kind for kind, pattern in _LEAVE_TYPES.items() if pattern.search(cached_prompt.lower())}
     if leave_a and leave_b and leave_a != leave_b:
         return f"different leave categories ({', '.join(sorted(leave_a))} / {', '.join(sorted(leave_b))})"
+
+    low_a, low_b = prompt.lower(), cached_prompt.lower()
+    pay_a = {kind for kind, pattern in _PAYMENT_TYPES.items() if pattern.search(low_a)}
+    pay_b = {kind for kind, pattern in _PAYMENT_TYPES.items() if pattern.search(low_b)}
+    if pay_a and pay_b and pay_a != pay_b:
+        return f"different payment categories ({', '.join(sorted(pay_a))} / {', '.join(sorted(pay_b))})"
+
+    if (_SUSPICIOUS.search(low_a) or _SUSPICIOUS.search(low_b)) and _acted_on_message(low_a) != _acted_on_message(low_b):
+        return "acted on a suspicious message in only one prompt"
 
     for text, other in ((prompt, stems_b), (cached_prompt, stems_a)):
         # In a prompt typed all in capitals, capitals do not mark acronyms

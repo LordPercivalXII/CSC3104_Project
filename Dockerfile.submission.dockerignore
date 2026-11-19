@@ -1,0 +1,27 @@
+# Used only by Dockerfile.submission (BuildKit reads <Dockerfile>.dockerignore).
+# Secrets: never include a real API key
+.env
+.env.*
+!.env.example
+
+# Version control, caches and local environments
+.git
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/venv
+.pytest_cache
+.idea
+.vscode
+*.log
+data/
+
+# Intermediate benchmark and scheduler runs; the curated snapshots are kept
+eval/runs
+eval/cost/results/*
+!eval/cost/results/paper_v1
+!eval/cost/results/paper_v2
+
+# Never copy image archives into the image itself
+*.tar
+*.tar.gz

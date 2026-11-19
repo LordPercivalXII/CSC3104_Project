@@ -8,6 +8,8 @@
 set -uo pipefail
 URL=${URL:-http://localhost:8080}
 NS=llm-gateway
+# Git Bash on Windows rewrites /paths inside kubectl exec commands (/etc/... -> C:/Program Files/Git/etc/...)
+export MSYS_NO_PATHCONV=1
 TEST_LIMIT=2
 OUT=$(mktemp -d)
 FAILED=0

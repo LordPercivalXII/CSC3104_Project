@@ -172,3 +172,42 @@ class PersonalPhraseRegressionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BenchmarkWrongMatchRegressionTests(unittest.TestCase):
+    """Wrong matches found by the 19 Nov benchmark on the revised time-sensitive filter."""
+
+    def test_acting_on_a_phishing_email_is_not_reporting_one(self):
+        acted = [
+            "I clicked a link in a suspicious email and entered my password. What should I do right now?",
+            "Oh no I think I got phished, I typed my password into a dodgy page, what now?",
+            "i clickd a bad link and put in my pasword help",
+        ]
+        report = [
+            "I got a suspicious email asking for my login details. How do I report it?",
+            "Kindly advise on the correct procedure to report a suspected phishing message.",
+        ]
+        for a in acted:
+            for r in report:
+                with self.subTest(acted=a, report=r):
+                    self.assertIsNotNone(conflict(a, r))
+                    self.assertIsNotNone(conflict(r, a))
+
+    def test_negated_action_is_not_acting(self):
+        # (The separate negation rule may still reject such a pair; this rule must not.)
+        reason = conflict("I haven't clicked anything in the suspicious email, how do I report it?",
+                          "I got a suspicious email asking for my login details. How do I report it?")
+        self.assertNotEqual(reason, "acted on a suspicious message in only one prompt")
+
+    def test_own_pay_is_not_a_supplier_invoice(self):
+        self.assertIsNotNone(conflict("my pay is wrnog this month who do i ask",
+                                      "Did you pay my invoice yet, who do I ask?"))
+        self.assertIsNotNone(conflict("My salary this month looks wrong. Who do I contact?",
+                                      "I'm a supplier and sent an invoice weeks ago. How do I find out if it's been paid?"))
+
+    def test_same_question_wordings_still_match(self):
+        for a, b in (("My salary this month looks wrong. Who do I contact to have it checked?", "my pay is wrnog this month who do i ask"),
+                     ("clicked phishing link, entered password", "i clickd a bad link and put in my pasword help"),
+                     ("Did you pay my invoice yet, who do I ask?", "how can i chek if my invioce was paid")):
+            with self.subTest(a=a):
+                self.assertIsNone(conflict(a, b))
