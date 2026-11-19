@@ -49,6 +49,12 @@ spec:
             - {name: SCHEDULER_BACKEND, value: redis}
             - {name: REDIS_URL, value: "redis://redis:6379/0"}
             - {name: LLM_RATE_LIMIT_PER_MINUTE, value: "10"}   # all pods together; keep below your Gemini requests-per-minute
+            # Decision and feedback logs as JSON lines on stdout ("-"): a pod's files are lost when it
+            # restarts or is scaled away, and each replica would keep its own. Read with kubectl logs.
+            - {name: GW_GATEWAY_DECISION_LOG_PATH, value: "-"}
+            - {name: GW_SEMANTIC_CACHE_FEEDBACK_PATH, value: "-"}
+            # Close keep-alive connections after 30 s so clients spread across newly scaled pods
+            - {name: CONNECTION_MAX_AGE_SECONDS, value: "30"}
             - name: GEMINI_API_KEY             # Secret created by up.sh from .env; never committed
               valueFrom:
                 secretKeyRef: {name: gemini-api-key, key: GEMINI_API_KEY, optional: true}

@@ -28,13 +28,13 @@ class ManualImportSafetyTests(unittest.TestCase):
         script = r'''
 import importlib.util, pathlib, socket, threading, urllib.request
 from unittest.mock import patch
-names = ["test_scheduler_demo", "test_scheduler_worker", "test_dynamic_scheduler",
-         "test_scheduler_performance", "test_real_llm_fairness", "test_scheduler_api"]
+names = ["round_robin_demo", "scheduler_worker_demo", "dynamic_scheduler_demo",
+         "scheduler_performance", "real_llm_fairness", "scheduler_api_demo"]
 def forbidden(*args, **kwargs):
     raise AssertionError("manual module attempted work during import")
 with patch.object(socket.socket, "connect", forbidden), patch.object(threading.Thread, "start", forbidden), patch.object(urllib.request, "urlopen", forbidden):
     for name in names:
-        spec = importlib.util.spec_from_file_location(name, pathlib.Path("tests") / (name + ".py"))
+        spec = importlib.util.spec_from_file_location(name, pathlib.Path("scripts") / "manual" / (name + ".py"))
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 '''

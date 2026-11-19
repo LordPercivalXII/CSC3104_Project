@@ -405,9 +405,15 @@ def store_paraphrase(prompt: str, embedding: list[float], hit: dict, now: float 
 def append_jsonl(path: Path, record: dict):
     """
     Append one JSON object as a line to path, creating its folder if needed.
+    A path of "-" writes the line to standard output instead, where Kubernetes keeps it
+    (kubectl logs) and a log collector can gather it from every replica.
     """
     path = Path(path)
     line = json.dumps(record, ensure_ascii=False, default=str)
+    if str(path) == "-":
+        with _jsonl_lock:
+            print(line, flush=True)
+        return
     with _jsonl_lock:
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "a", encoding="utf-8") as file:

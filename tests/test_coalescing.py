@@ -167,6 +167,24 @@ class TestCoalescingAcrossPods(RedisPodsTestCase):
                          "You asked: What is Docker?")
         self.assertEqual(llm.calls, 1)
 
+    def test_follower_caches_answer_when_leader_left(self):
+        # The leader's caller left, so nobody would store the paid-for answer; one
+        # follower is named the store owner instead.
+        llm = CountingLLM()
+        pod_a, pod_b = self.make_pods(llm, count=2)
+        pod_a.running = pod_b.running = True
+        leader = pod_a.submit("A", "What is Docker?", dedup=True)
+        follower = pod_b.submit("B", "What is Docker?", dedup=True)
+        leader.cancel()
+        pod_a.running = pod_b.running = False
+        pod_a.start()
+        pod_b.start()
+
+        result = follower.result(timeout=RESULT_TIMEOUT)
+        self.assertTrue(result.get("coalesced"))
+        self.assertTrue(result.get("store_owner"))
+        self.assertEqual(llm.calls, 1)
+
     def test_cancelled_leader_alone_does_not_block_the_question(self):
         llm = CountingLLM()
         pod = self.make_pod(llm)

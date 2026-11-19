@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, StringConstraints
 
 from smart_ai_gateway.config import get_settings, resolve_path
+from smart_ai_gateway.connection_recycling import ConnectionRecyclingMiddleware, max_age_from_env
 from smart_ai_gateway.services import semantic_cache
 from smart_ai_gateway.services.semantic_cache import (
     append_jsonl, cache_skip_reason, generate_embedding, record_hit, report_wrong_match,
@@ -152,6 +153,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(GatewayMetricsMiddleware)
+# Outermost: periodically closes keep-alive connections so newly scaled replicas get traffic
+app.add_middleware(ConnectionRecyclingMiddleware, max_age_seconds=max_age_from_env())
 
 # Resolve paths relative to this Python file
 BASE_DIR = Path(__file__).resolve().parent
@@ -405,8 +408,11 @@ async def _chat(request: ChatRequest, background_tasks: BackgroundTasks):
     usage = result.get("usage")
 
     # Store only complete answers, once per LLM call, after the response is sent: a slow or
-    # failing Qdrant then costs the user nothing (REVIEW C8).
-    store = cache_ok and embedding is not None and not coalesced and cacheable
+    # failing Qdrant then costs the user nothing (REVIEW C8). Normally the leader stores the
+    # answer; when the leader's caller timed out or left, the scheduler names one follower
+    # as the store owner so the paid-for answer is still cached.
+    store_owner = result.get("store_owner", False)
+    store = cache_ok and embedding is not None and (not coalesced or store_owner) and cacheable
     if store:
         background_tasks.add_task(_store_in_background, user_prompt, answer, embedding)
     elif cache_ok and not cacheable:

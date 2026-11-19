@@ -128,6 +128,8 @@ class MemoryCoordinator:
 
     def _finish(self, request, message):
         state = self.states.get(request["request_id"])
+        # When the leader's caller timed out or left, one follower stores the shared answer.
+        owner_needed = state is not None and bool(state.get("caller_done") or state.get("detached"))
         if state is not None and state.get("caller_done"):
             # The leader's caller already has its timeout; only close the shared job.
             if state["status"] != "CANCELLED":
@@ -140,6 +142,10 @@ class MemoryCoordinator:
             reply["request_id"] = waiter["request_id"]
             if "response" in reply:
                 reply["response"].update(request_id=waiter["request_id"], user_id=waiter["user_id"], coalesced=True)
+                waiter_state = self.states.get(waiter["request_id"])
+                if owner_needed and waiter_state is not None and waiter_state["status"] != "CANCELLED":
+                    reply["response"]["store_owner"] = True
+                    owner_needed = False
             self._deliver(waiter, reply)
         key = request.get("dedup_key")
         if key and self.inflight.get(key) == request["request_id"]:

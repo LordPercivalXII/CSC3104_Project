@@ -210,6 +210,25 @@ class ChatApiTest(ChatApiTestCase):
         upsert.assert_called_once()
         self.assertEqual(self.count(), 0)
 
+    # --- coalesced answers: stored once ------------------------------------------
+
+    def test_coalesced_answer_is_stored_only_by_the_store_owner(self):
+        async def shared(user_id, prompt, dedup=False, owner=False):
+            return {"response": "shared answer", "request_id": "r1", "coalesced": True,
+                    "store_owner": owner, "cacheable": True, "usage": None}
+
+        with mock.patch.object(main, "_submit_and_wait", side_effect=shared):
+            self.ask("how do I reset my password")
+        self.assertEqual(self.count(), 0)   # the live leader stores it, not this follower
+
+        async def owner(user_id, prompt, dedup=False):
+            return await shared(user_id, prompt, dedup, owner=True)
+
+        with mock.patch.object(main, "_submit_and_wait", side_effect=owner):
+            self.ask("how do I reset my password", user="bob")
+        self.assertEqual(self.count(), 1)   # the leader's caller left, so this follower stores it
+        self.assertTrue(self.decisions()[-1]["stored"])
+
     # --- what is not cached (C9, C11) ---------------------------------------------
 
     def test_uncacheable_answer_is_returned_but_not_stored(self):

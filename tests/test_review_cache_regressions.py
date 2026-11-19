@@ -102,6 +102,29 @@ class TemporalRegressionTests(unittest.TestCase):
             with self.subTest(label=label):
                 self.assertIsNotNone(time_sensitive(prompt), prompt)
 
+    def test_first_person_fact_questions_about_a_date_still_bypass(self):
+        # A first-person question that is not asking for a procedure depends on the date.
+        cases = [
+            ("work day", "Do we work tomorrow?"),
+            ("pay timing", "Are we getting paid early this week?"),
+            ("cover", "Who is covering for me today?"),
+            ("permission today", "Can I leave early today?"),
+            ("holiday", "Do we have a holiday next Monday?"),
+            ("payday", "Is our payday this Friday?"),
+            ("attendance", "Do I need to come in tomorrow?"),
+            ("team event", "What are we doing for the team event tonight?"),
+            ("request status", "Did my leave request from yesterday get approved?"),
+        ]
+        for label, prompt in cases:
+            with self.subTest(label=label):
+                self.assertIsNotNone(time_sensitive(prompt), prompt)
+
+    def test_carry_over_balance_named_in_an_earlier_sentence(self):
+        self.assertIsNone(time_sensitive(
+            "It's nearly December and I will have 5 days of holiday unspent. "
+            "Will I lose them or can they move into next year?"))
+        self.assertIsNotNone(time_sensitive("Will the leave policy change next year? I have 5 days left."))
+
 
 class PersonalPhraseRegressionTests(unittest.TestCase):
     def setUp(self):

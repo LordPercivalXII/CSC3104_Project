@@ -1,6 +1,77 @@
 # Smart AI Gateway: project status, handoff and review
 
-## Follow-up fixes — 2026-11-15 (uncommitted)
+## Audit fixes — 2026-11-19 (uncommitted)
+
+An audit of `ffcd49e` against this file found two defects introduced or widened by that commit,
+plus two housekeeping items. All are fixed:
+
+- **N3 follow-up: the first-person exception hid date-dependent questions.** `ffcd49e` treated a date
+  cue in *any* first-person prompt as context unless a shared-state word appeared. "Do we work
+  tomorrow?", "Is our payday this Friday?", "Who is covering for me today?", "Can I leave early
+  today?" and five similar prompts were all bypassed before `ffcd49e` and became cacheable after it.
+  The benchmark's 20 time-sensitive prompts contain no such phrasings, so it could not show this.
+  `time_sensitive()` now applies the exception only when the prompt also asks for a procedure
+  (`_PROCEDURE_ASK`: "how do I…", "who do I tell…", "where can I…", "what should I do…"). The
+  carry-over rule now finds a leave balance named in an earlier sentence. Result on
+  `eval/cost/data/intents.json`: 13 of 906 FAQ phrasings flagged (80 before `ffcd49e`, 12 with it),
+  20/20 time-sensitive prompts and all nine probes above caught. Still tuned on the benchmark corpus.
+- **A shared answer was not cached when the leader's caller had gone.** `/chat` stored an answer only
+  for the non-coalesced caller. When the leader's caller timed out (`caller_done`) or disconnected
+  (`detached`), which is exactly the case `ffcd49e` keeps alive, followers received the answer but no
+  one stored it, so the next identical question paid for inference again. The scheduler now marks one
+  live follower's reply `store_owner` (`redis_scripts` `finish`, `MemoryCoordinator._finish`), and
+  `main.py` stores when `not coalesced or store_owner`.
+- The heading of the 2026-11-15 section said "uncommitted"; it was committed in `ffcd49e`.
+- The six manual scripts listed in §7 moved from `tests/` to `scripts/manual/` (renamed without the
+  `test_` prefix; see its README). The import-safety test now checks them there.
+- **`k8s/test-scheduler.sh` was stale (last updated at `f0c9cbb`) and reported failures on a working
+  system.** It counted LLM calls from a "Processing request" log line that `6476b9a` removed, and its
+  duplicate-question prompt ended in a 10-digit timestamp, which the personal-data filter reads as a
+  phone number; such prompts are deliberately never shared or cached, so nothing was coalesced. It now
+  counts calls from each pod's `gateway_inference_calls_total` metric, uses a digit-free question, and
+  waits until every gateway pod runs the new settings. Result on the kind cluster: all 13 checks pass
+  (shared limit and fair order at 0/60/120 s; 5 identical questions → 1 LLM call, 4 shared answers;
+  recovery after a Redis restart).
+
+### Deployment fixes found by load testing — 2026-11-19 (uncommitted)
+
+A 20-user Locust run against the kind cluster (demo stack, mock LLM) found three deployment defects:
+
+- **PyTorch thread oversubscription made `/chat` hang under load.** PyTorch started one thread per
+  host CPU (16) in pods limited to 1 CPU; the threads wait on each other under the CPU quota. Median
+  latency was 1.3–2.7 s, the autoscaler went to 6 pods, and after the load every pod stopped
+  answering `/chat` for ~10 minutes (each request took ~37 s, serialised by the model lock).
+  The Dockerfile now sets `OMP_NUM_THREADS=1` and `MKL_NUM_THREADS=1`, matching the benchmark's
+  `--torch-threads 1`. Same load afterwards: median 56–63 ms, 0 failures, CPU near the 70% target with
+  4 pods, and every pod responsive after the load. `HF_HUB_OFFLINE=1` is also set (models are baked).
+- **New replicas received no traffic.** A Service balances connections, not requests, so keep-alive
+  clients stayed on the original pods (three new pods served 0 of 1,253 requests).
+  `smart_ai_gateway/connection_recycling.py` answers with `Connection: close` once a connection is
+  older than `CONNECTION_MAX_AGE_SECONDS` (30 in `k8s/gateway.yaml`; 0 disables). Re-run: the pod
+  added during the load served 397 of 2,203 requests.
+- **Decision and feedback logs were lost on pod restart** (each pod wrote `data/*.jsonl` in its own
+  filesystem). A log path of `-` now means JSON lines on stdout; `k8s/gateway.yaml` sets
+  `GW_GATEWAY_DECISION_LOG_PATH` and `GW_SEMANTIC_CACHE_FEEDBACK_PATH` to `-`, read with `kubectl logs`.
+
+Also checked and passing: the web page and `/feedback` flow; autoscaling up (3→4–6 under load) and
+down (6→3 after ~5 idle minutes); Prometheus targets and the Grafana dashboard; the Docker Compose
+quick start (Gemini answer 6.9 s, cache hit 0.046 s, sweeper). Tests: **309 passed, 112 subtests**.
+
+The paper_v1 0.90 threshold seed-2 HTTP 504 was a host suspension: that run finished 5.5 h after
+seed 1 and the whole gap is inside request 303 (0.016 CPU s, no LLM call). A re-run on the current
+code (`eval/cost/results/confirmation_threshold_0.90_seed2/`) has 0 errors, 1,512 hits, 5 wrong hits
+and a slowest request of 0.94 s (original: 1 error, 1,488 hits, 5 wrong).
+
+Remaining small findings, not changed: `static/script.js` shows a generic error for HTTP 429;
+`/feedback` can delete any entry whose id is known (no authentication, as S1).
+
+Tests: **303 passed, 112 subtests**, run in the gateway image with `git` installed (the provenance test
+needs it). New cases: first-person fact questions and two-sentence carry-over
+(`test_review_cache_regressions.py`); store ownership for live, cancelled and timed-out leaders in
+both backends (`test_scheduler_reliability.py`); end to end through the worker (`test_coalescing.py`)
+and `/chat` (`test_chat_api.py`).
+
+## Follow-up fixes — 2026-11-15 (committed in `ffcd49e`)
 
 A re-review of `e90bc6f` against this file found two remaining defects. Both are now fixed:
 

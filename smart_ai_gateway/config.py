@@ -25,7 +25,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def resolve_path(path: str) -> Path:
-    """A file path from the config: absolute as given, relative from the project root."""
+    """A file path from the config: absolute as given, relative from the project root.
+
+    "-" means standard output (used on Kubernetes, where a pod's files are lost on restart
+    and each replica would keep its own copy); it is returned unchanged.
+    """
+    if path.strip() == "-":
+        return Path("-")
     candidate = Path(path)
     return candidate if candidate.is_absolute() else PROJECT_ROOT / candidate
 CONFIG_PATH_ENV = "GATEWAY_CONFIG"

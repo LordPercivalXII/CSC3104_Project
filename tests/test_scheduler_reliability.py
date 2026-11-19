@@ -183,6 +183,41 @@ def test_cancelled_leader_continues_for_remaining_follower(coord):
     assert coord.result(follower["request_id"])["response"]["response"] == "ok"
 
 
+def test_live_leader_keeps_cache_storage_for_itself(coord):
+    leader, follower = request(key="same"), request("B", "same")
+    coord.submit(leader)
+    coord.submit(follower)
+    _, processing = coord.take()
+    coord.complete(processing, answer(processing))
+    assert not coord.result(follower["request_id"])["response"].get("store_owner")
+
+
+def test_follower_stores_answer_when_leader_caller_left(coord):
+    leader, follower = request(key="same"), request("B", "same")
+    coord.submit(leader)
+    coord.submit(follower)
+    coord.cancel(leader["request_id"])
+    _, processing = coord.take()
+    coord.complete(processing, answer(processing))
+    assert coord.result(follower["request_id"])["response"]["store_owner"] is True
+
+
+def test_follower_stores_answer_when_leader_timed_out(coord):
+    coord.config["timeout"] = 0.05
+    leader = request(key="same")
+    coord.submit(leader)
+    coord.config["timeout"] = 2
+    first, second = request("B", "same"), request("C", "same")
+    coord.submit(first)
+    coord.submit(second)
+    time.sleep(0.06)
+    coord.maintain()
+    _, shared = coord.take()
+    coord.complete(shared, answer(shared))
+    owners = [coord.result(r["request_id"])["response"].get("store_owner") for r in (first, second)]
+    assert owners.count(True) == 1
+
+
 @pytest.mark.parametrize("backend", ["memory", "redis"])
 def test_lost_notification_is_recovered_without_repeating_inference(backend, monkeypatch):
     calls = []

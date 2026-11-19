@@ -50,6 +50,8 @@ with a queue per pod, fairness and the limit would only hold inside each pod. Se
 | `SCHEDULER_WORKERS` | not set (1) | LLM calls each pod makes at the same time |
 | `SCHEDULER_COALESCE` | not set (`true`) | Identical questions asked at the same time share one LLM call; `false` turns it off |
 | `SCHEDULER_REQUEST_TIMEOUT_SECONDS` | not set (120) | Bounds each HTTP request and queued job |
+| `CONNECTION_MAX_AGE_SECONDS` | `30` | Keep-alive connections older than this are closed after their response, so clients reconnect and spread across newly scaled pods (a Service balances connections, not requests); `0` = off |
+| `GW_GATEWAY_DECISION_LOG_PATH`, `GW_SEMANTIC_CACHE_FEEDBACK_PATH` | `-` | Decision and feedback logs as JSON lines on stdout (`kubectl logs`), because a pod's own files are lost on restart |
 | `LLM_RATE_LIMIT_MODE` | not set (`sliding`) | `paced` spaces admissions to prevent an initial burst |
 
 Duplicate questions: when several people ask the same question (ignoring case and spacing) while

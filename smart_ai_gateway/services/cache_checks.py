@@ -114,6 +114,23 @@ _SHARED_STATE = re.compile(
     r"planned|scheduled|schedule|maintenance|how\s+many|what\s+time\s+(?:does|do|is|are|will)|"
     r"when\s+is|when's|when\s+are)\b"
 )
+# The first-person exception above applies only when the prompt asks for a procedure
+# ("how do I…", "who do I tell…", "where can I…", "what should I do…"). A first-person
+# question about a fact or schedule ("do we work tomorrow?", "is our payday this Friday?",
+# "who is covering for me today?") depends on the date, so it still bypasses the cache.
+_PROCEDURE_ASK = re.compile(
+    r"\bhow\s+(?:do|can|should|would|could)\s+(?:i|we)\b|\bhow\s+to\b|\bhow\s+long\b|"
+    r"\bwhat\s+(?:should|do|can)\s+(?:i|we)\s+do\b|\bwhat\s+should\s+(?:i|we)\b|"
+    r"\bwhat(?:\s+\w+)?\s+do\s+(?:i|we)\s+need\b|"
+    r"\bwhat(?:s|'s|\s+is)\s+the\s+(?:process|procedure|proper\s+way|best\s+way|right\s+way)\b|"
+    r"\bwhat\s+are\s+the\s+(?:\w+\s+)?steps\b|\bwhat\s+(?:forms|documents|things|paperwork)\b|"
+    r"\bwhere\s+(?:do|can|should)\s+(?:i|we)\b|"
+    r"\bwho\s+(?:do|should|can)\s+(?:i|we)\s+(?:tell|contact|notify|ask|inform|call|email|speak\s+to|talk\s+to)\b|"
+    r"\bwho\s+(?:checks|fixes|looks\s+after|handles|deals\s+with)\b|"
+    r"\bcan\s+i\s+(?:just|get|log|push|claim|expense|carry|book|reserve|submit)\b|"
+    r"\bdo\s+i\s+need\s+(?:approval|permission|sign\s*off)\b|\b(?:do|can|should)\s+i\s+claim\b|"
+    r"\bshould\s+(?:i|we)\s+use\b|\bcan\s+the\s+company\b"
+)
 _CREDENTIAL = re.compile(r"\b(?:passwords?|passphrases?|pin)\b")
 _CREDENTIAL_ACTION = re.compile(r"\b(?:change|changing|reset|resetting|update|updating|replace|replacing|enter|entering)\b")
 _CURRENT_CREDENTIAL = re.compile(r"\bcurrent(?=\s+(?:passwords?|passphrases?|pin|one)\b)")
@@ -299,7 +316,9 @@ def time_sensitive(prompt: str) -> str | None:
         # Leave carried into another year is a recurring policy question. A
         # policy-change/deadline question still needs a fresh answer. The narrow
         # replacement leaves any separate event/date cue in the same prompt.
-        if (_CARRY_ACTION.search(clause) and _LEAVE_BALANCE.search(clause)
+        # The leave balance may be named in an earlier sentence ("I have 5 days unspent.
+        # Can they move into next year?"), so look for it in the whole prompt.
+        if (_CARRY_ACTION.search(clause) and _LEAVE_BALANCE.search(lowered)
                 and not _POLICY_CHANGE.search(clause)):
             clause = _TRANSFER_YEAR.sub(lambda m: m.group(1) + " the following year", clause)
         clauses[i] = clause
@@ -312,7 +331,8 @@ def time_sensitive(prompt: str) -> str | None:
         return word
     match = _DATE_PHRASE.search(lowered)
     cue = match.group(0) if match else next(iter(sorted(words & _DATE_WORDS)), None)
-    if cue is None or (_FIRST_PERSON.search(lowered) and not _SHARED_STATE.search(lowered)):
+    if cue is None or (_FIRST_PERSON.search(lowered) and _PROCEDURE_ASK.search(lowered)
+                       and not _SHARED_STATE.search(lowered)):
         return None
     return cue
 

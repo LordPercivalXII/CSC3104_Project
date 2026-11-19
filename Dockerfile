@@ -26,6 +26,19 @@ RUN pip install -r requirements.txt
 # The names must match embedding_model and verifier_model in smart_ai_gateway/gateway.config.
 RUN python -c "from sentence_transformers import SentenceTransformer, CrossEncoder; SentenceTransformer('BAAI/bge-small-en-v1.5'); CrossEncoder('cross-encoder/quora-roberta-base')"
 
+# Runtime settings (after the download, so the layers above stay cached):
+# HF_HUB_OFFLINE=1: use the baked models without Hugging Face network checks at startup.
+# OMP/MKL_NUM_THREADS=1: one PyTorch thread per model call. By default PyTorch starts one
+# thread per host CPU (16 on a typical laptop) even when the container may only use 1 CPU
+# (k8s/gateway.yaml limits). Those threads must run together, so under a CPU limit they wait
+# on each other: in a 20-user load test /chat slowed from 56 ms to 1.3-2.7 s and then stopped
+# answering. The cost benchmark already runs with one thread (bench.py --torch-threads 1), so
+# this also makes every deployment match the measured configuration. Calls to one model are
+# serialised by a lock anyway; throughput comes from replicas, not from threads.
+ENV HF_HUB_OFFLINE=1 \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1
+
 # Copy the application files
 COPY main.py .
 COPY static/ ./static/

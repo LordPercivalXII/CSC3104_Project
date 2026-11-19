@@ -54,6 +54,9 @@ local function finish(request, message, token)
     local status = redis.call('HGET', key, 'status')
     if status == 'COMPLETED' or status == 'FAILED' or status == 'CANCELLED' then return 0 end
     if token and redis.call('HGET', key, 'token') ~= token then return 0 end
+    -- When the leader's caller timed out or left, one follower stores the shared answer.
+    local owner_needed = redis.call('HGET', key, 'caller_done') == '1'
+                         or redis.call('HGET', key, 'detached') == '1'
     if redis.call('HGET', key, 'caller_done') == '1' then
         -- The leader's own caller already received its timeout; only close the shared job.
         redis.call('HSET', key, 'status', 'FAILED')
@@ -71,6 +74,10 @@ local function finish(request, message, token)
             reply.response.request_id = follower.request_id
             reply.response.user_id = follower.user_id
             reply.response.coalesced = true
+            if owner_needed and redis.call('HGET', jk(follower.request_id), 'status') ~= 'CANCELLED' then
+                reply.response.store_owner = true
+                owner_needed = false
+            end
         end
         deliver(follower, reply)
     end

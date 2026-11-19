@@ -21,11 +21,23 @@ env_value() {
     -o jsonpath="{.spec.template.spec.containers[0].env[?(@.name==\"$1\")].value}"
 }
 
-# Wait until the new pods are ready and the old ones have gone (old pods still process
-# requests with the old settings while they shut down)
+# Wait until every gateway pod runs the current settings: the rollout is complete, no old
+# pod is still shutting down (old pods keep processing requests with the old settings), and
+# the number of pods equals the number the Deployment has updated.
 wait_for_gateway() {
   kubectl -n $NS rollout status deploy/gateway --timeout=600s >/dev/null
-  while kubectl -n $NS get pods -l app=gateway --no-headers | grep -q Terminating; do sleep 2; done
+  local until=$((SECONDS + 600)) want have
+  while true; do
+    want=$(kubectl -n $NS get deploy gateway -o jsonpath='{.status.updatedReplicas}')
+    have=$(kubectl -n $NS get pods -l app=gateway --no-headers 2>/dev/null | grep -c ' Running ')
+    if ! kubectl -n $NS get pods -l app=gateway --no-headers | grep -q Terminating \
+       && [ -n "$want" ] && [ "$have" = "$want" ] \
+       && [ "$(kubectl -n $NS get deploy gateway -o jsonpath='{.status.replicas}')" = "$want" ]; then
+      return 0
+    fi
+    [ "$SECONDS" -ge "$until" ] && { echo "  gateway pods did not settle"; return 1; }
+    sleep 2
+  done
 }
 
 redis() { kubectl -n $NS exec redis-0 -- redis-cli "$@"; }
@@ -45,18 +57,24 @@ ask() {
     -d "{\"user_id\":\"$2\",\"prompt\":\"$3\"}" > "$OUT/$1.json"
 }
 
-# Number of LLM calls made so far by all gateway pods
-llm_calls() {
-  kubectl -n $NS logs -l app=gateway --tail=-1 2>/dev/null | grep -c 'Processing request'
+# LLM calls made so far by each gateway pod, as "<pod> <count>" lines, read from each pod's
+# Prometheus counter gateway_inference_calls_total (successful and failed calls).
+pod_calls() {
+  local pod
+  for pod in $(kubectl -n $NS get pods -l app=gateway -o jsonpath='{.items[*].metadata.name}'); do
+    echo "$pod $(kubectl -n $NS exec "$pod" -c gateway -- python -c '
+import urllib.request
+text = urllib.request.urlopen("http://localhost:8000/metrics", timeout=5).read().decode()
+print(int(sum(float(line.rsplit(" ", 1)[1]) for line in text.splitlines()
+              if line.startswith("gateway_inference_calls_total{"))))' 2>/dev/null || echo 0)"
+  done
 }
 
-# Pod whose worker processed a request (from its "Processing request <id>" log line)
-processed_by() {
-  local id
-  id=$(grep -o '"request_id":"[^"]*"' "$OUT/$1.json" | cut -d'"' -f4)
-  kubectl -n $NS logs -l app=gateway --prefix --tail=-1 --since=10m 2>/dev/null \
-    | grep "Processing request ${id:0:8}" | head -1 | sed 's#^\[pod/\([^/]*\)/.*#\1#'
-}
+# Total LLM calls made so far by all gateway pods
+llm_calls() { pod_calls | awk '{s += $2} END {print s + 0}'; }
+
+# Number of pods whose LLM-call count grew between two pod_calls snapshots
+pods_used() { join <(sort "$1") <(sort "$2") | awk '$3 > $2' | wc -l; }
 
 echo "== 0. Redis is running with the expected settings"
 kubectl -n $NS get pods
@@ -102,17 +120,19 @@ echo "   W sends 2 requests (this minute's limit), then A sends 3 and B sends 1.
 echo "   Expected: W1 W2 now; A1 and B1 about 60 s later; A2 and A3 about 120 s later."
 echo "   With a limit per pod, 3 pods would allow 6 calls at once; with plain first come,"
 echo "   first served, B1 would wait behind all of A's requests."
+pod_calls > "$OUT/calls-before"
 T0=$(date +%s%N)
 send W1 W & send W2 W &
 sleep 2
 for name in A1 A2 A3; do send "$name" A & sleep 0.3; done
 send B1 B &
 wait
+pod_calls > "$OUT/calls-after"
 
 for name in W1 W2 A1 A2 A3 B1; do
-  printf "   %-3s answered after %3s s, processed by %s\n" "$name" "$(secs $name)" "$(processed_by $name)"
+  printf "   %-3s answered after %3s s\n" "$name" "$(secs $name)"
 done
-PODS=$(for name in W1 W2 A1 A2 A3 B1; do processed_by $name; done | sort -u | wc -l)
+PODS=$(pods_used "$OUT/calls-before" "$OUT/calls-after")
 
 [ "$(secs W1)" -lt 10 ] && [ "$(secs W2)" -lt 10 ] \
   && pass "the first $TEST_LIMIT requests ran straight away" \
@@ -126,13 +146,15 @@ PODS=$(for name in W1 W2 A1 A2 A3 B1; do processed_by $name; done | sort -u | wc
 [ "$(secs A2)" -ge 105 ] && [ "$(secs A3)" -ge 105 ] \
   && pass "A2 and A3 waited for the next minute" \
   || fail "A2 or A3 started too early"
-echo "   (requests were processed by $PODS different pod(s); all pods take from the same queue)"
+echo "   (LLM calls ran on $PODS different pod(s); all pods take from the same queue)"
 
 echo
 echo "== 3. Duplicate questions: 5 people ask the same new question at the same time (about 1 minute)"
 echo "   Step 2 used up this minute's calls, so all 5 arrive while the first one waits its turn."
 echo "   Expected: 1 LLM call; the other 4 share its answer and are not cached again."
-QUESTION="How do I request access to project $(date +%s)?"
+# A fresh question each run, without digits: a long number would be read as personal data
+# (a phone number), and personal prompts are deliberately never shared or cached.
+QUESTION="How do I request access to the shared drive for team $(LC_ALL=C tr -dc 'a-z' < /dev/urandom | head -c 8)?"
 BEFORE=$(llm_calls)
 for i in 1 2 3 4 5; do ask "D$i" "dup-user$i" "$QUESTION" & done
 wait
