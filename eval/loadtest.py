@@ -132,10 +132,10 @@ def steady(args):
 
 def duplicates(args):
     rec = Recorder(args, "duplicates")
-    # A new question every trial, so it is never already in the semantic cache.
-    # The numbers keep trials apart (the cache only matches the same numbers).
+    # new number each trial so the question isn't already cached.
+    # max 5 digits, 6+ gets flagged as personal data (no sharing/caching)
     question = (f"What is the approval process for purchase order "
-                f"{int(time.time())}{args.n}{args.run}?")
+                f"{int(time.time()) % 100000}?")
 
     for i in range(1, args.n + 1):
         rec.send("/chat", f"D{i}", f"dup-user{i}", question)
