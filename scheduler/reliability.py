@@ -103,8 +103,38 @@ class MemoryCoordinator:
             # A notification failure does not lose the retained result.
             pass
 
+    def _expire_leader(self, rid):
+        """Time out only the leader's caller while later followers still have time left.
+
+        Returns True when the shared job continues until the latest follower deadline.
+        """
+        state = self.states.get(rid)
+        if state is None or state.get("leader"):
+            return False
+        now = time.monotonic()
+        latest = max((w["deadline"] for w in self.waiters.get(rid, {}).values()), default=0)
+        if latest <= now:
+            return False
+        if not state.get("caller_done"):
+            request = state["request"]
+            message = {"request_id": rid, "error": SchedulerTimeoutError("Request deadline exceeded")}
+            state.update(result=message, caller_done=True, detached=True)
+            try:
+                self.store.publish_result(request["reply_to"], message)
+            except Exception:
+                pass
+        state["request"]["deadline"] = latest
+        return True
+
     def _finish(self, request, message):
-        self._deliver(request, message)
+        state = self.states.get(request["request_id"])
+        if state is not None and state.get("caller_done"):
+            # The leader's caller already has its timeout; only close the shared job.
+            if state["status"] != "CANCELLED":
+                state["finished"] = time.monotonic()
+                self._status(request["request_id"], "FAILED")
+        else:
+            self._deliver(request, message)
         for waiter in self.waiters.pop(request["request_id"], {}).values():
             reply = copy.deepcopy(message)
             reply["request_id"] = waiter["request_id"]
@@ -121,7 +151,8 @@ class MemoryCoordinator:
             active = [s for s in self.states.values() if s["status"] in ("PENDING", "PROCESSING")]
             user = request["user_id"]
             if (len(active) >= self.config["max_pending"] or self.scheduler.pending_count() >= self.config["max_pending"]
-                    or sum(s["request"]["user_id"] == user for s in active) >= self.config["max_per_user"]):
+                    or sum(s["request"]["user_id"] == user and not s.get("caller_done") for s in active)
+                    >= self.config["max_per_user"]):
                 raise QueueFullError("The request queue is full")
             request = dict(request, deadline=time.monotonic() + self.config["timeout"])
             rid, key = request["request_id"], request.get("dedup_key")
@@ -158,7 +189,7 @@ class MemoryCoordinator:
                 if self.store.get_status(rid) == "CANCELLED":
                     self.cancel(rid)
                     continue
-                if request["deadline"] <= time.monotonic():
+                if request["deadline"] <= time.monotonic() and not self._expire_leader(rid):
                     self._finish(request, {"request_id": rid, "error": SchedulerTimeoutError("Request deadline exceeded")})
                     continue
                 if self.store.get_status(rid) is None:
@@ -177,7 +208,8 @@ class MemoryCoordinator:
             state = self.states.get(request["request_id"])
             if not state or state["status"] != "PROCESSING" or state["request"].get("lease_token") != request["lease_token"]:
                 return False
-            if request["deadline"] <= time.monotonic():
+            # The stored deadline may have been extended for followers after this job was taken.
+            if state["request"]["deadline"] <= time.monotonic() and not self._expire_leader(request["request_id"]):
                 self._finish(request, {"request_id": request["request_id"], "error": SchedulerTimeoutError("Request deadline exceeded")})
                 return False
             self._finish(request, message)
@@ -206,6 +238,8 @@ class MemoryCoordinator:
                     leader = state.get("leader")
                     if leader:
                         self.waiters.get(leader, {}).pop(rid, None)
+                    elif self._expire_leader(rid):
+                        continue
                     self._finish(request, {"request_id": rid, "error": SchedulerTimeoutError("Request deadline exceeded")})
                 elif state["status"] == "PROCESSING" and state["lease"] <= now:
                     if state["attempts"] >= self.config["attempts"]:

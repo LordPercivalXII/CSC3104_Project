@@ -71,6 +71,52 @@ def test_deadline_finishes_queued_requests_and_followers(coord):
     assert coord.take() is None
 
 
+def test_leader_timeout_keeps_shared_call_for_later_follower(coord):
+    coord.config["timeout"] = 0.05
+    leader = request(key="same")
+    coord.submit(leader)
+    coord.config["timeout"] = 2
+    follower = request("B", "same")
+    coord.submit(follower)
+    time.sleep(0.06)
+    coord.maintain()
+    assert isinstance(coord.result(leader["request_id"])["error"], SchedulerTimeoutError)
+    assert coord.result(follower["request_id"]) is None
+    _, shared = coord.take()
+    assert shared["request_id"] == leader["request_id"]
+    coord.complete(shared, answer(shared))
+    assert coord.result(follower["request_id"])["response"]["response"] == "ok"
+    assert isinstance(coord.result(leader["request_id"])["error"], SchedulerTimeoutError)
+    assert coord.take() is None
+
+
+def test_late_shared_answer_still_reaches_follower_with_time_left(coord):
+    coord.config["timeout"] = 0.05
+    leader = request(key="same")
+    coord.submit(leader)
+    _, processing = coord.take()
+    coord.config["timeout"] = 2
+    follower = request("B", "same")
+    coord.submit(follower)
+    time.sleep(0.06)
+    coord.complete(processing, answer(processing))
+    assert coord.result(follower["request_id"])["response"]["coalesced"]
+    assert isinstance(coord.result(leader["request_id"])["error"], SchedulerTimeoutError)
+
+
+def test_last_follower_leaving_stops_timed_out_leader(coord):
+    coord.config["timeout"] = 0.05
+    leader = request(key="same")
+    coord.submit(leader)
+    coord.config["timeout"] = 2
+    follower = request("B", "same")
+    coord.submit(follower)
+    time.sleep(0.06)
+    coord.maintain()
+    coord.cancel(follower["request_id"])
+    assert coord.take() is None
+
+
 def test_late_completion_cannot_publish_success(coord):
     coord.config["timeout"] = 0.01
     r = request()

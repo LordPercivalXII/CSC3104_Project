@@ -54,7 +54,14 @@ local function finish(request, message, token)
     local status = redis.call('HGET', key, 'status')
     if status == 'COMPLETED' or status == 'FAILED' or status == 'CANCELLED' then return 0 end
     if token and redis.call('HGET', key, 'token') ~= token then return 0 end
-    deliver(request, message)
+    if redis.call('HGET', key, 'caller_done') == '1' then
+        -- The leader's own caller already received its timeout; only close the shared job.
+        redis.call('HSET', key, 'status', 'FAILED')
+        redis.call('EXPIRE', key, cfg.retention)
+        release(id, request.user_id)
+    else
+        deliver(request, message)
+    end
     local waiting = redis.call('HVALS', waitkey(id))
     for _, raw in ipairs(waiting) do
         local follower = cjson.decode(raw)
@@ -77,6 +84,32 @@ local function finish(request, message, token)
 end
 local function failure(request, kind, text)
     return finish(request, {request_id=request.request_id, error=text, error_type=kind}, nil)
+end
+-- A leader's deadline belongs to its own caller. When coalesced followers that joined later
+-- still have time left, time out only the leader's caller and keep the shared call running
+-- until the latest follower deadline. Returns true when the shared job continues.
+local function expire_leader(id, r)
+    local key = jk(id)
+    if redis.call('HGET', key, 'leader') then return false end
+    local latest = 0
+    for _, raw in ipairs(redis.call('HVALS', waitkey(id))) do
+        local d = tonumber(cjson.decode(raw).deadline or 0) or 0
+        if d > latest then latest = d end
+    end
+    if latest <= now then return false end
+    if redis.call('HGET', key, 'caller_done') ~= '1' then
+        local encoded = cjson.encode({request_id=id, error='Request deadline exceeded',
+                                      error_type='SchedulerTimeoutError'})
+        redis.call('HSET', key, 'result', encoded, 'caller_done', '1', 'detached', '1')
+        local target = prefix .. 'results:' .. r.reply_to
+        redis.call('RPUSH', target, encoded)
+        redis.call('EXPIRE', target, cfg.retention)
+        if r.user_id then redis.call('SREM', prefix .. 'active:' .. r.user_id, id) end
+    end
+    r.deadline = latest
+    redis.call('HSET', key, 'request', cjson.encode(r))
+    redis.call('ZADD', prefix .. 'deadlines', latest, id)
+    return true
 end
 local function cancel_one(id)
     local key = jk(id)
@@ -151,7 +184,7 @@ elseif op == 'take' then
                 r.deadline = r.deadline or (now + cfg.timeout)
                 redis.call('HSET', key, 'request', cjson.encode(r))
                 redis.call('PERSIST', key)
-                if r.deadline <= now then
+                if r.deadline <= now and not expire_leader(id, r) then
                     failure(r, 'SchedulerTimeoutError', 'Request deadline exceeded')
                 else
                     local attempts = redis.call('HINCRBY', key, 'attempts', 1)
@@ -166,7 +199,11 @@ elseif op == 'take' then
     end
     return nil
 elseif op == 'complete' then
-    if arg.request.deadline <= now then
+    -- The stored deadline may have been extended for followers after this job was taken.
+    local saved = redis.call('HGET', jk(arg.request.request_id), 'request')
+    local stored = saved and cjson.decode(saved) or arg.request
+    if (stored.deadline or arg.request.deadline) <= now
+       and not expire_leader(arg.request.request_id, stored) then
         return finish(arg.request, {request_id=arg.request.request_id,
             error='Request deadline exceeded', error_type='SchedulerTimeoutError'}, arg.request.lease_token)
     end
@@ -200,8 +237,12 @@ elseif op == 'maintain' then
         if raw then
             local r = cjson.decode(raw)
             local leader = redis.call('HGET', jk(id), 'leader')
-            if leader then redis.call('HDEL', waitkey(leader), id) end
-            failure(r, 'SchedulerTimeoutError', 'Request deadline exceeded')
+            if leader then
+                redis.call('HDEL', waitkey(leader), id)
+                failure(r, 'SchedulerTimeoutError', 'Request deadline exceeded')
+            elseif not expire_leader(id, r) then
+                failure(r, 'SchedulerTimeoutError', 'Request deadline exceeded')
+            end
         else redis.call('ZREM', prefix .. 'deadlines', id) end
     end
     local stale = redis.call('ZRANGEBYSCORE', prefix .. 'processing', '-inf', now, 'LIMIT', 0, 100)

@@ -76,10 +76,31 @@ class TemporalRegressionTests(unittest.TestCase):
             ("recurring day", "Is the building open every Sunday?"),
             ("recurring plural day", "Is reception open on Sundays?"),
             ("recurring event procedure", "How should I prepare for an annual fire drill?"),
+            ("filler now", "Fat-fingered my password a few times and now I'm shut out, what now?"),
+            ("first-person morning context", "I'm unwell this morning and can't make it to the office. Who should I notify?"),
+            ("first-person weekday context", "I'm starting on Monday. What should I bring on my first day?"),
+            ("first-person past event", "I left my company phone in a taxi last night. What are the urgent steps?"),
+            ("urgency", "I clicked a link in a suspicious email. What should I do right now?"),
+            ("first-person upcoming trip", "Can I get cash in advance for an upcoming business trip I'm taking?"),
         ]
         for label, prompt in cases:
             with self.subTest(label=label):
                 self.assertIsNone(time_sensitive(prompt), prompt)
+
+    def test_first_person_context_does_not_hide_shared_schedule_or_state(self):
+        cases = [
+            ("opening hours", "I'm off tomorrow, is the canteen open?"),
+            ("room availability", "We have a client visit tomorrow, is the big room free?"),
+            ("duty roster", "Who is on duty today? I need first aid"),
+            ("menu", "My team wants to know what's for lunch today"),
+            ("days remaining", "How many leave days do I have left as of today?"),
+            ("next event", "I need to plan around it: when is the next fire drill?"),
+            ("current state", "Now that I am back, who is the current manager?"),
+            ("status phrase", "My VPN is down at the moment, is there an outage?"),
+        ]
+        for label, prompt in cases:
+            with self.subTest(label=label):
+                self.assertIsNotNone(time_sensitive(prompt), prompt)
 
 
 class PersonalPhraseRegressionTests(unittest.TestCase):

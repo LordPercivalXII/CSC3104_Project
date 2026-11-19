@@ -1,5 +1,34 @@
 # Smart AI Gateway: project status, handoff and review
 
+## Follow-up fixes — 2026-11-15 (uncommitted)
+
+A re-review of `e90bc6f` against this file found two remaining defects. Both are now fixed:
+
+- **N3, time-sensitive over-triggers (was only partly fixed).** The 2026-11-13 cues "this morning",
+  "on Monday", "last night" and a bare "now" flagged 80 of the 906 FAQ phrasings in
+  `eval/cost/data/intents.json` (old code: 67). In the paper_v1 run they cost 730 correct hits.
+  `cache_checks.time_sensitive()` now separates *state* cues ("current", "latest", "at the moment",
+  "next fire drill"), which always bypass the cache, from *date* cues. A date cue in a first-person
+  account ("I came in this morning and my laptop…") is treated as context unless the prompt asks
+  about a shared schedule or state (open/closed, free, outage, menu, on duty, deadline, how many…).
+  Bare "now" is filler; "right now" still counts. Result: 12 of 906 FAQ phrasings flagged, and all
+  20 time-sensitive prompts are still caught. These rules were checked against the benchmark corpus,
+  so rerun results on it are optimistic. Validate on held-out real questions.
+- **A coalesced follower failed at the leader's deadline.** When the leader timed out, `maintain`,
+  `take` and `complete` failed every follower, even ones that joined later with time left. A shared
+  answer arriving after the leader's deadline was also thrown away. Now only the leader's caller
+  receives the timeout (`caller_done`). The shared call keeps running until the latest follower
+  deadline, and stops once the last follower leaves. Both backends: `redis_scripts.expire_leader`
+  and `MemoryCoordinator._expire_leader`.
+
+Tests: **293 passed, 103 subtests** (new cases in `test_scheduler_reliability.py` and
+`test_review_cache_regressions.py`). The venv also needs `prometheus-client` (`pip install -r
+requirements.txt`): `main.py` imports `demo.telemetry`.
+
+Known and left as is: S6 paced limiter is opt-in (`LLM_RATE_LIMIT_MODE=paced`). `/ready` fails when
+Redis is down, which also stops cache hits through the Service (documented in `k8s/README.md`).
+`_result_loop` polls one `HGET` per pending job every 0.2 s.
+
 ## Evaluation handoff — 2026-11-15
 
 The owner completed the main and four threshold experiments. The curated

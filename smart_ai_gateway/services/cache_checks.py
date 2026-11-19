@@ -75,20 +75,44 @@ _PHRASE_OPPOSITES = [
     ("sign in", "sign out"), ("signed in", "signed out"), ("signing in", "signing out"),
 ]
 
-_TIME_WORDS = {
-    "today", "todays", "tonight", "tomorrow", "tomorrows", "yesterday", "now",
-    "currently", "latest", "upcoming", "current", "recent", "recently", "newest",
+# Words asking about the present state of something ("who is the current manager?").
+# These always need a fresh answer.
+_STATE_WORDS = {"currently", "latest", "current", "newest"}
+# Words placing an event in time. In a first-person account they are usually context
+# (see _FIRST_PERSON below). A bare "now" is usually filler ("now what?", "and now my
+# codes are gone"), so only the "right now"-style phrases below count.
+_DATE_WORDS = {
+    "today", "todays", "tonight", "tomorrow", "tomorrows", "yesterday",
+    "upcoming", "recent", "recently",
 }
 _DAYS = r"monday|tuesday|wednesday|thursday|friday|saturday|sunday"
-# Relative dates and the next occurrence of an event require fresh information.
+# The next occurrence of a shared event is always a schedule lookup.
 # Do not classify every use of "next": "next step" is an ordinary procedure.
-_TIME_PHRASE = re.compile(
-    r"\b(?:this|next|last)\s+(?:week|weekend|month|quarter|year|morning|afternoon|evening|night|"
-    + _DAYS + r")\b|\bon\s+(?:" + _DAYS + r")\b|"
-    r"\bat\s+(?:the|this)\s+moment\b|\bat\s+present\b|"
+_NEXT_EVENT = re.compile(
     r"\bnext\s+(?:(?:company|team|staff|scheduled)\s+)?"
     r"(?:(?:fire|evacuation|safety)\s+drill|all\s+hands(?:\s+meeting)?|town\s+hall|"
     r"public\s+holiday|meeting|payday|maintenance\s+window|training\s+session|event)\b"
+)
+_STATE_PHRASE = re.compile(
+    r"\bat\s+(?:the|this)\s+moment\b|\bat\s+present\b|\bas\s+of\s+now\b|"
+    r"\b(?:open|closed|available|free|down|working|busy)\s+now\b"
+)
+# Relative dates. "right now" in "what should I do right now?" signals urgency, not state.
+_DATE_PHRASE = re.compile(
+    r"\b(?:this|next|last)\s+(?:week|weekend|month|quarter|year|morning|afternoon|evening|night|"
+    + _DAYS + r")\b|\bon\s+(?:" + _DAYS + r")\b|\b(?:right|just)\s+now\b"
+)
+# A time cue in a first-person account ("I came in this morning and my laptop won't start",
+# "I'm starting on Monday, what should I bring?") is context for a procedure question, so the
+# answer does not depend on the date. It still needs a fresh answer when the question asks
+# about a shared schedule or state: opening hours, availability, outages, menus, rosters,
+# deadlines or a count of days.
+_FIRST_PERSON = re.compile(r"\b(?:i|i'm|im|i've|ive|i'll|i'd|me|my|mine|we|we're|our|us)\b")
+_SHARED_STATE = re.compile(
+    r"\b(?:open|opens|opening|closed|closes|closing|down|working|staffed|free|available|"
+    r"availability|busy|full|outages?|deadline|cut\s*off|until|menu|lunch|weather|on\s+duty|"
+    r"planned|scheduled|schedule|maintenance|how\s+many|what\s+time\s+(?:does|do|is|are|will)|"
+    r"when\s+is|when's|when\s+are)\b"
 )
 _CREDENTIAL = re.compile(r"\b(?:passwords?|passphrases?|pin)\b")
 _CREDENTIAL_ACTION = re.compile(r"\b(?:change|changing|reset|resetting|update|updating|replace|replacing|enter|entering)\b")
@@ -280,12 +304,17 @@ def time_sensitive(prompt: str) -> str | None:
             clause = _TRANSFER_YEAR.sub(lambda m: m.group(1) + " the following year", clause)
         clauses[i] = clause
     lowered = _normalise("".join(clauses))
-    match = _TIME_PHRASE.search(lowered)
+    words = _words(lowered)
+    match = _NEXT_EVENT.search(lowered) or _STATE_PHRASE.search(lowered)
     if match:
         return match.group(0)
-    for word in sorted(_words(lowered) & _TIME_WORDS):
+    for word in sorted(words & _STATE_WORDS):
         return word
-    return None
+    match = _DATE_PHRASE.search(lowered)
+    cue = match.group(0) if match else next(iter(sorted(words & _DATE_WORDS)), None)
+    if cue is None or (_FIRST_PERSON.search(lowered) and not _SHARED_STATE.search(lowered)):
+        return None
+    return cue
 
 
 def personal_phrase(prompt: str, phrases: list[str]) -> str | None:
