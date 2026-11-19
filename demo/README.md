@@ -248,7 +248,7 @@ kubectl --context kind-llm-gateway -n llm-gateway get pods
 ```
 
 Once the gateway, Qdrant, Redis and monitoring pods are ready, go directly to
-[Open the demo pages](#open-the-demo-pages) and restart the three port-forwards.
+[Open the demo pages](#open-the-demo-pages) and restart the port-forwards.
 **You do not need to rerun `start-kubernetes.ps1` for a normal restart.**
 
 The startup script creates a missing cluster; it does not restart stopped node
@@ -287,7 +287,7 @@ does not read the CSVs or monetary estimates under `eval/cost/`; those are a sep
 ### Open the demo pages
 
 Keep each of these commands running in its own PowerShell terminal. They block
-while forwarding, so do not paste all three into one terminal.
+while forwarding.
 
 Terminal 1 (Grafana):
 
@@ -307,12 +307,23 @@ Terminal 3 (Locust):
 kubectl --context kind-llm-gateway -n llm-gateway port-forward service/demo-locust 8089:8089
 ```
 
+Terminal 4 (Qdrant dashboard):
+
+```powershell
+kubectl --context kind-llm-gateway -n llm-gateway port-forward service/qdrant 6335:6333
+```
+
 | Page | Kubernetes address |
 | --- | --- |
 | Chat | http://localhost:8080 |
 | Grafana | http://localhost:3000/d/gateway-demo |
 | Prometheus targets | http://localhost:9090/targets |
 | Locust | http://localhost:8089 |
+| Qdrant | http://localhost:6335/dashboard |
+
+In Qdrant, open `demo_semantic_cache` to inspect the mock demo's cached prompts
+and responses. Port `6335` connects to Qdrant inside Kubernetes and avoids a
+conflict with a standalone Qdrant container on port `6333`.
 
 Grafana login: **admin / demo-local-password**. In Locust, start with **2 users**,
 **1 user/second**, and Host **`http://gateway`**. Click Start to generate traffic;
@@ -389,7 +400,7 @@ kubectl -n llm-gateway rollout status deployment/gateway --timeout=300s
 other gateway deployments. Reapplying the base manifest alone is not a reliable
 way to remove fields introduced by an imperative patch.
 
-Use the three port-forwards under [Open the demo pages](#open-the-demo-pages).
+Use the port-forwards under [Open the demo pages](#open-the-demo-pages).
 Locust's Kubernetes host is **http://gateway**. To change its workload:
 
 ```powershell
