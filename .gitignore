@@ -67,4 +67,5 @@ eval/cost/results/paper_v2/*
 !eval/cost/results/paper_v2/threshold_0.97/
 !eval/cost/results/paper_v2/threshold_0.99/
 !eval/cost/results/paper_v2/sens/
+!eval/cost/results/paper_v2/baseline_threshold_only/
 eval/cost/results/paper_v2/**/raw/*.tmp

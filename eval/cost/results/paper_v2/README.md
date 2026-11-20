@@ -68,6 +68,23 @@ chart [sens/sensitivity.png](sens/sensitivity.png)):
   pooled 949 -> 142, 85.0%) and **more correct hits in 12 of 12** (+1.4 to +5.7 percentage points).
 - 0 request errors in all 108 runs.
 
+## Threshold-only baseline (GPTCache-style)
+
+[baseline_threshold_only](baseline_threshold_only/) replays the same 50-employee workload (seeds 1-5, 15,013 requests)
+through a cache that reuses the nearest answer whenever cosine similarity reaches one threshold: the decision rule GPTCache
+uses by default. Verifier, rule checks and eligibility filter are off (`eval/cost/baseline_threshold_only.py`; the gateway
+code is unchanged, the rule checks are disabled in the harness only). Compared with the final pipeline on the same requests
+(`threshold_0.97`):
+
+| Cache | Answered from cache | Wrong hits | Wrong / hits |
+| --- | ---: | ---: | ---: |
+| Final pipeline (0.97, verifier, rules, eligibility) | 49.2% | 11 | 0.15% |
+| Threshold-only 0.90 | 47.9% | 292 | 4.06% |
+| Threshold-only 0.80 | 61.7% | 801 | 8.64% |
+
+At 0.90, 199 of the 292 wrong hits were personal or time-sensitive questions that the eligibility filter would not cache.
+No request failed.
+
 ## Honest limits
 
 - **Synthetic workload.** Questions are authored FAQ intents and paraphrases. A wrong hit means the returned
