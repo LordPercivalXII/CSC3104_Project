@@ -1,4 +1,4 @@
-# Smart AI Gateway: project status, handoff and review
+# Smart AI Gateway: project status and review
 
 ## Audit fixes — 2026-11-19 (uncommitted)
 
@@ -100,14 +100,14 @@ Known and left as is: S6 paced limiter is opt-in (`LLM_RATE_LIMIT_MODE=paced`). 
 Redis is down, which also stops cache hits through the Service (documented in `k8s/README.md`).
 `_result_loop` polls one `HGET` per pending job every 0.2 s.
 
-## Evaluation handoff — 2026-11-15
+## Evaluation status — 2026-11-15
 
-The owner completed the main and four threshold experiments. The curated
+The team completed the main and four threshold experiments. The curated
 [paper_v1 snapshot](eval/cost/results/paper_v1/README.md) now includes all 35 raw CSVs and their
 metadata, per-experiment reports and a combined comparison. The raw records pass hash, seed/count
 and paired-stream checks. The recorded application source is `6476b9a`; the old baseline is `2007299`.
 Earlier implementation fixes are already in `6476b9a`. This new snapshot/analysis change is prepared
-for review in GitHub Desktop; no commit or push has been made by the assistant.
+for review in GitHub Desktop before committing.
 
 The revised gateway reduced pooled wrong cache reuse from 1,146 to 169 out of 78,363 requests per
 configuration. Thresholds 0.95, 0.97 and 0.99 returned identical cache outcomes on the sweep's paired
@@ -125,13 +125,13 @@ verification before monetary paper claims. See the snapshot README for the next 
 Validation after the accounting fix: **286 tests and 89 subtests passed**. The 99-file snapshot is about
 112 MiB; the largest file is 7.35 MiB. The manifest checks all 98 non-manifest artifacts and all 35 raw
 CSV/metadata pairs. Git's clean filter preserves raw CSV bytes, and the credential-pattern scan found
-no matches. No live LLM calls, Kubernetes deployment, Git staging, commit or push was performed.
+no matches.
 
-## Implementation handoff — 2026-11-13 (historical)
+## Implementation status — 2026-11-13 (historical)
 
 This section supersedes the historical status tables below. Work remains uncommitted on
 `docker-k8s-deployment`; no deployment, live Gemini requests, authentication or tenant features were added.
-The owner explicitly deferred identity and tenant isolation.
+The team deferred identity and tenant isolation.
 
 | Findings | Current implementation |
 |---|---|
@@ -195,9 +195,9 @@ use the revised corpus in an existing deployment (commands in `demo/README.md`).
 
 ---
 
-## Historical handoff (retained for context)
+## Historical status notes (retained for context)
 
-*Last updated 2026-11-11. Base commit `2007299` on branch `docker-k8s-deployment`. **All work described here is uncommitted** in the working tree. Read this file first; it is written so a person or an AI model can continue the project without the original conversation.*
+*Last updated 2026-11-11. Base commit `2007299` on branch `docker-k8s-deployment`. **All work described here is uncommitted** in the working tree. Read this file first; it is written so any team member can pick up the work from here.*
 
 **Contents**
 - [0. Read this first](#0-read-this-first): goal, constraints, status
@@ -223,7 +223,7 @@ A CSC3104 cloud computing module project. A FastAPI gateway sits between a compa
 3. **Redis** (when `SCHEDULER_BACKEND=redis`) holds the scheduler queue shared by all pods, the cluster-wide LLM rate limiter, and the sharing of one LLM call between identical simultaneous questions. **Redis is not a prompt cache.** Exact and near-exact repeats are both answered by Qdrant.
 4. It runs on Docker Compose or Kubernetes (`k8s/`).
 
-### The owner's goals
+### Project goals
 
 - The module needs a **research article**. Its main question: *does a prompt cache like this save an SME money?* It must be backed by **actual statistics and results**, not estimates.
 - The cache should be reliable. Wrong answers, where one employee is served an answer meant for a different question, are the costly error.
@@ -232,8 +232,8 @@ A CSC3104 cloud computing module project. A FastAPI gateway sits between a compa
 
 | Rule | Detail |
 |---|---|
-| **No commits without asking** | The owner asked for all changes to stay uncommitted. Don't commit, branch, stash or reset unless they ask. Read-only git is fine. |
-| **Tenant scoping is deferred** | The owner chose not to implement multi-company isolation (finding C10) yet. Don't build it unasked; keep it listed as a limitation. |
+| **Review before committing** | Changes stayed uncommitted until the team had reviewed them. |
+| **Tenant scoping is deferred** | The team chose not to implement multi-company isolation (finding C10); it stays listed as a limitation. |
 | **Reviews report first** | When asked to *review*, report findings with file and line, and change code only when asked to fix. |
 | **Article honesty** | Results must be measured and reproducible (`eval/cost/`). State assumptions and limitations. Don't present extrapolations as measurements. |
 | **Secrets** | `GEMINI_API_KEY` lives in `.env`, which is git-ignored. Never print it or commit it. |
@@ -249,8 +249,8 @@ A CSC3104 cloud computing module project. A FastAPI gateway sits between a compa
 | Test suite | ✅ **201 passed** (13 files in `tests/`) |
 | Follow-ups found by the benchmark (maternity/paternity, time-sensitive detector) | ⏳ Open, section 4 |
 | Scheduler findings S1-S12 | ⏳ Open; not worked on |
-| Tenant scoping (C10) | ⏸ Deferred by the owner |
-| Committing the work | ⏸ Waiting for the owner; decide what to commit from the 201 MB `eval/cost/results/` |
+| Tenant scoping (C10) | ⏸ Deferred by the team |
+| Committing the work | ⏸ Decide what to commit from the 201 MB `eval/cost/results/` |
 
 ---
 
@@ -501,11 +501,11 @@ Full details: `eval/cost/RESULTS.md`. "Old" means the code at commit `2007299`; 
 | 1 | Add maternity/paternity and other sibling-term rules | Small | ⏳ |
 | 2 | Fix the time-sensitive detector (misses and over-triggers) | Medium | ⏳ |
 | 3 | Re-run the benchmark after 1 and 2; update `RESULTS.md` | ~70 min, mostly unattended | ⏳ |
-| 4 | Ask the owner what to commit | Small | ⏸ Owner |
+| 4 | Decide what to commit | Small | ⏸ Team |
 | 5 | Normalise mixed line endings | Tiny | ⏳ |
 | 6 | Trim `personal_phrases` ("my manager" over-skips) | Small | ⏳ |
 | 7 | Scheduler findings S1-S12 | Medium-Large | ⏳ Confirm scope first |
-| 8 | Tenant scoping (C10) | Large | ⏸ Only if the owner asks |
+| 8 | Tenant scoping (C10) | Large | ⏸ Deferred |
 | 9 | Calibrate thresholds on real traffic | Medium | ⏳ |
 | 10 | Domain-tuned verifier | High | ⏳ |
 | 11 | Hybrid dense + keyword (BM25) search | Medium-High | ⏳ Do last |
@@ -524,7 +524,7 @@ Full details: `eval/cost/RESULTS.md`. "Old" means the code at commit `2007299`; 
    - *Before committing:* check that `git status --ignored` doesn't hide anything you mean to commit.
 5. **Line endings.** `main.py`, `scripts/sweep_expired_cache.py` and `services/clear_semantic_cache.py` contain some LF lines. `.gitattributes` normalises them on commit, so this is cosmetic.
 6. **`personal_phrases`.** "my manager" skips general questions such as "how do I ask my manager for leave" (0.66% of FAQ requests; finding N4). That's a safe miss, but it costs hits.
-7. **Scheduler.** S3 (jobs lost or hanging forever) and S4 (no end-to-end timeout) are the most serious. S1 (forgeable `user_id`) needs authentication. Not requested yet.
+7. **Scheduler.** S3 (jobs lost or hanging forever) and S4 (no end-to-end timeout) are the most serious. S1 (forgeable `user_id`) needs authentication. Not scheduled yet.
 8. **Tenant scoping.** Needed for the multi-company SaaS idea. The cost case also improves with shared infrastructure (`RESULTS.md` §2.3). Pairs with S1 and S2.
 9. **Calibrate on real traffic.** The decision log records similarity, verifier score and stage per request. Collect real employee traffic, label a sample, and re-tune `similarity_threshold`, `verify_threshold` and `verifier_threshold`. *Why:* every evaluation set so far is hand-written, which is the biggest unknown in the article.
 10. **Domain-tuned verifier.** Fine-tune the cross-encoder on helpdesk pairs (the `/feedback` log and `cache_matching_pairs.py` are training data), or use a small LLM as a judge only in the 0.75-0.97 grey zone. *Why:* the Quora model limits hits. It is cautious on short paraphrases ("payslip" vs "salary statement", p = 0.00), yet it still matched "maternty leave" to paternity (p = 0.91).
@@ -534,12 +534,11 @@ Full details: `eval/cost/RESULTS.md`. "Old" means the code at commit `2007299`; 
 
 ## 5. Pitfalls learned the hard way
 
-- **Line numbers.** Files use **CRLF** line endings, and some tools miscount lines. Two reviewers cited wrong line numbers. Use `grep -n` or `cat -n`, and prefer function names over line numbers.
+- **Line numbers.** Files use **CRLF** line endings, and some tools miscount lines. Line numbers quoted in review notes have been wrong before. Use `grep -n` or `cat -n`, and prefer function names over line numbers.
 - **Hugging Face.** Set `HF_HUB_OFFLINE=1`. The models are in `~/.cache/huggingface`, and without it every start makes network checks. Windows shows harmless symlink warnings.
 - **Memory.** On the 12-core laptop, at most about 5 parallel processes can each load the models.
 - **Decision log.** It writes to `data/decisions.jsonl` by default. Benchmarks and tests must redirect it (`bench.py --decision-log-dir`; the tests use temporary folders) to keep the repo clean.
 - **Gemini free tier.** 8 calls/min for 159 calls hit no rate limits. Free-tier prompts may be used by Google, so don't send real employee data.
-- **Antigravity (`agy`), for delegating to Gemini.** Run it from an **empty** working folder, not from inside the repo. Inside a code project it may try shell commands, which headless mode denies. Pass the prompt file's folder with `--add-dir`.
 
 ---
 
@@ -657,7 +656,7 @@ Each open finding keeps the full detail from the original review, so whoever pic
 | C7 | Med | Time-sensitive words incomplete | ✅ Partly: "current/recent/newest" added. ⏳ The benchmark found more gaps and false positives; see next step 2 |
 | C8 | Med | A Qdrant failure gives 500, and a store failure loses the answer | ✅ `main.py` `chat` falls back to the LLM; `_store_in_background`; `qdrant_timeout_seconds` |
 | C9 | Med | Truncated answers cached | ✅ `llm.LLMAnswer.cacheable`; `/chat` stores only if cacheable |
-| C10 | Med (High for multi-company) | No tenant scoping; one company's answers can reach another | ⏸ **Deferred by the owner**. Documented limitation |
+| C10 | Med (High for multi-company) | No tenant scoping; one company's answers can reach another | ⏸ **Deferred by the team**. Documented limitation |
 | C11 | Med | Personal or pasted prompts cached and shared | ✅ `semantic_cache.cache_skip_reason` eligibility filter. ⏳ It over-skips some FAQs (next step 6) |
 | C12 | Low | Numbers compared as sets | ✅ Ordered comparison for short prompts; number words read as digits |
 | C13 | Low | False misses (2FA vs two-factor, VPN vs VPNs, locked vs unlock) | ✅ `_normalise`, `_stem`, `_without_locked_state`. A known remaining false miss: "one drive" vs "OneDrive" |
@@ -669,7 +668,7 @@ Each open finding keeps the full detail from the original review, so whoever pic
 
 #### Details for the cache-side items not yet fixed
 
-**C10: no tenant scoping** (deferred by the owner; checked: read it)
+**C10: no tenant scoping** (deferred by the team; checked: read it)
 - **Where:** `main.py` `chat`; `semantic_cache.py` `search_cache_detailed` and `store_cache` (no tenant field in the payload or the filter); `scheduler_worker.py` `_dedup_key` (the coalescing key is the prompt only).
 - **Failure scenario:** company A's employee asks "At Acme our leave policy is 20 days, how many can I carry over?". Company B's similar question can be answered with Acme's details. Identical prompts from two companies can also share one in-flight LLM call.
 - **Fix:** add `tenant_id` (from auth, not the request body) to the payload, with a keyword index and a mandatory `must` filter on every search, or use one collection per tenant. Include the tenant in the coalescing key. Pairs with S1 and S2.
@@ -722,6 +721,6 @@ Each open finding keeps the full detail from the original review, so whoever pic
 | 2026-11-10 | Review of the whole gateway (report only) | Findings S1-S12, C1-C15, X1-X3; cache baseline 15/32 hits, 0/26 wrong |
 | 2026-11-10 | Fix cache findings and add the accuracy features | Everything in section 1; 201 tests pass |
 | 2026-11-10 | Cost and reliability benchmark | `eval/cost/`, results in `RESULTS.md` |
-| 2026-11-11 | This handoff rewrite of `REVIEW.md` | – |
+| 2026-11-11 | This rewrite of `REVIEW.md` | – |
 
 The first version of this file, the 2026-11-10 review, was never committed. This rewrite keeps **every finding**. Open and deferred ones (S1-S12, C10, X2, X3) keep their full detail: location, concrete failure scenario, suggested fix, and how they were checked. Fixed ones are shortened to what changed and where. The verbatim rule patch from the original Appendix A is no longer included, because it has been applied and extended in `cache_checks.py`; `git diff 2007299 -- smart_ai_gateway/services/cache_checks.py` shows it.

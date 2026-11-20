@@ -5,7 +5,7 @@ restores selected settings, uses fresh run directories and defaults to mock-only
 The plotter now evaluates exact completion windows and labels them as completions. The cost
 benchmark now archives a portable baseline and validates provenance before resuming. These fixes
 do not retroactively validate or replace the saved historical measurements discussed below.
-See [../eval/README.md](../eval/README.md) and [../REVIEW.md](../REVIEW.md) for the current handoff.
+See [../eval/README.md](../eval/README.md) and [../REVIEW.md](../REVIEW.md) for the current status.
 
 The `eval/` folder already generates traffic, records outcomes and creates graphs.
 Its saved graphs demonstrate the particular workloads and configurations recorded
