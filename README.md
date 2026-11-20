@@ -13,6 +13,28 @@ Docker Compose or Kubernetes.
 For Kubernetes, see [k8s/README.md](k8s/README.md). For the semantic cache, see
 [smart_ai_gateway/semantic_cache_readme.md](smart_ai_gateway/semantic_cache_readme.md).
 
+## Testing from this repository (without the submitted image)
+
+The submission includes a Docker image (`GROUP10_image.tar.gz`) and testing instructions
+(`GROUP10_INSTRUCTIONS.pdf`, also in [submission/](submission/)). If the image is not available,
+everything can be built from this repository instead. You need Docker (8 GB of memory for Docker),
+`kind`, `kubectl` and, on Windows, Git Bash. No API key is needed: without one the gateway uses a mock LLM.
+
+```bash
+git clone https://github.com/LordPercivalXII/CSC3104_Project.git
+cd CSC3104_Project
+bash k8s/up.sh                 # builds smart-gateway:dev from source (first build about 5-10 min),
+                               # then creates a 3-node kind cluster and deploys everything
+bash k8s/test.sh               # deployment test (about 3 min)
+bash k8s/test-scheduler.sh     # distributed scheduler test (about 10 min)
+```
+
+Then follow the testing instructions from Part B2, with two differences from the image route:
+skip Step 1 (`docker load`), and run `k8s/up.sh` **without** `SKIP_BUILD=1`, as above.
+For the Docker Compose demo (Part A), build it from source with
+`docker compose -f demo/compose.yaml up -d --build` instead of tagging the loaded image.
+The unit tests (Part C) work once `k8s/up.sh` has built the image.
+
 ## The LLM
 
 Settings are in the `[llm]` section of [smart_ai_gateway/gateway.config](smart_ai_gateway/gateway.config);
