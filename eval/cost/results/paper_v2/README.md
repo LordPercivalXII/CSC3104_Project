@@ -75,8 +75,9 @@ chart [sens/sensitivity.png](sens/sensitivity.png)):
 - **Rules tuned on the same corpus.** Two rule checks were added after an earlier run exposed the confusions:
   payroll versus supplier-invoice payments, and having acted on versus reporting a suspicious message. Results
   for those intents are therefore optimistic. The two hand-labelled pair sets were also used for tuning.
-- **Misspellings.** Most remaining wrong hits are typo-driven (a misspelled keyword slips past the rule
-  checks); this is a known limitation, not fixed.
+- **Misspellings and close requests.** 76 of the 162 remaining wrong hits in `main` come from a misspelled keyword slipping past the rule
+  checks; most of the rest confuse closely related requests (changing vs resetting a password, muting vs
+  unmuting). Both are known limitations, not fixed.
 - **Not an ablation.** Old versus new changes several policies together.
 - **Money.** Prices in `prices.json` were retrieved 2026-11-10 and include unverified secondary sources;
   hosting and savings are modelled estimates, not cloud bills.
