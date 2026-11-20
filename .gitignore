@@ -29,3 +29,43 @@ Thumbs.db
 
 # Docker Compose local overrides
 compose.override.yaml
+
+# Gateway runtime logs (decision log, feedback log)
+/data/
+
+# Generated experiments stay ignored, except the reviewed paper_v1 snapshot.
+eval/cost/results/*
+!eval/cost/results/paper_v1/
+eval/cost/results/paper_v1/*
+!eval/cost/results/paper_v1/README.md
+!eval/cost/results/paper_v1/comparison.json
+!eval/cost/results/paper_v1/comparison.png
+!eval/cost/results/paper_v1/snapshot_manifest.json
+!eval/cost/results/paper_v1/main/
+!eval/cost/results/paper_v1/threshold_0.90/
+!eval/cost/results/paper_v1/threshold_0.95/
+!eval/cost/results/paper_v1/threshold_0.97/
+!eval/cost/results/paper_v1/threshold_0.99/
+# Interrupted output files are never research artifacts.
+eval/cost/results/paper_v1/**/raw/*.tmp
+eval/runs/
+
+# Submission image archives are delivered separately (GitHub rejects files over 100 MB)
+*.tar
+*.tar.gz
+
+# Final evaluation snapshot used by the report and slides (paper_v2)
+!eval/cost/results/paper_v2/
+eval/cost/results/paper_v2/*
+!eval/cost/results/paper_v2/README.md
+!eval/cost/results/paper_v2/comparison.json
+!eval/cost/results/paper_v2/comparison.png
+!eval/cost/results/paper_v2/snapshot_manifest.json
+!eval/cost/results/paper_v2/main/
+!eval/cost/results/paper_v2/threshold_0.90/
+!eval/cost/results/paper_v2/threshold_0.95/
+!eval/cost/results/paper_v2/threshold_0.97/
+!eval/cost/results/paper_v2/threshold_0.99/
+!eval/cost/results/paper_v2/sens/
+!eval/cost/results/paper_v2/baseline_threshold_only/
+eval/cost/results/paper_v2/**/raw/*.tmp

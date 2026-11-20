@@ -1,0 +1,41 @@
+{
+ "retrieved": "2026-01-01",
+ "llm": [
+  {
+   "name": "Fake Flash-Lite",
+   "model_id": "fake-lite",
+   "input_per_mtok": 0.3,
+   "output_per_mtok": 2.5,
+   "thinking_billed_as": "output",
+   "source": "fixture",
+   "notes": ""
+  },
+  {
+   "name": "Fake Pro",
+   "model_id": "fake-pro",
+   "input_per_mtok": 2.0,
+   "output_per_mtok": 12.0,
+   "thinking_billed_as": "output",
+   "source": "fixture",
+   "notes": ""
+  }
+ ],
+ "hosting": [
+  {
+   "provider": "GCP",
+   "instance": "e2-standard-2",
+   "region": "us-central1",
+   "vcpu": 2,
+   "ram_gb": 8,
+   "usd_per_hour": 0.067,
+   "source": "fixture"
+  }
+ ],
+ "cluster_fees": [
+  {
+   "provider": "GCP",
+   "item": "GKE",
+   "usd_per_hour": 0.1
+  }
+ ]
+}

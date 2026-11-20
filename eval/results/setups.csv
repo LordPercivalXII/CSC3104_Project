@@ -1,0 +1,7 @@
+time,setup,backend,limit,llm,sharing,gateway_pods,commit
+2026-11-07T17:44:32+08:00,fair-shared,redis,9,mock,true,3,f0c9cbb
+2026-11-07T17:58:04+08:00,fair-per-pod,memory,3,mock,true,4,f0c9cbb
+2026-11-07T19:17:49+08:00,limit-per-pod,memory,9,mock,true,3,f0c9cbb
+2026-11-07T19:28:39+08:00,shared-limit,redis,9,mock,true,4,f0c9cbb
+2026-11-07T20:00:31+08:00,sharing-on,redis,10,config,true,3,f0c9cbb
+2026-11-07T20:15:37+08:00,sharing-off,redis,10,config,false,3,f0c9cbb

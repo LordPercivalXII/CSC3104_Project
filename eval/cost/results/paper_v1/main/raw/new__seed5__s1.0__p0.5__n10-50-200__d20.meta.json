@@ -1,0 +1,148 @@
+{
+  "created_utc": "2026-11-13T19:25:23.892573+00:00",
+  "csv_sha256": "321aa169c143bff67de8540498d23fc4533e29d320b7d7b4b14d885c4bddafd2",
+  "effective_settings": {
+    "gateway": {
+      "decision_log_enabled": false,
+      "decision_log_path": "data/decisions.jsonl",
+      "prompt_max_length": 4000,
+      "user_id_max_length": 128
+    },
+    "llm": {
+      "max_output_tokens": 2048,
+      "max_retries": 1,
+      "model": "gemini-3.5-flash-lite",
+      "provider": "mock",
+      "system_instruction": "You are the internal helpdesk assistant for company employees, answering IT, HR and workplace questions. Answer clearly and concisely in plain text, without Markdown formatting. Your answers are saved and reused for other employees who ask the same question, so do not address anyone by name or refer to earlier messages. If a question needs company-specific information you do not have, give general guidance and suggest contacting the IT or HR helpdesk.",
+      "thinking_level": "minimal",
+      "timeout_seconds": 30
+    },
+    "scheduler": {
+      "mock_llm_response_template": "Generated AI response to: {prompt}"
+    },
+    "semantic_cache": {
+      "cache_max_prompt_chars": 300,
+      "cache_max_prompt_lines": 3,
+      "collection_name": "semantic_cache",
+      "decay_half_life_seconds": 0,
+      "embedding_dim": 384,
+      "embedding_model": "BAAI/bge-small-en-v1.5",
+      "feedback_path": "data/feedback.jsonl",
+      "max_age_seconds": 604800,
+      "max_paraphrases": 5,
+      "other_model_grace_seconds": 604800,
+      "paraphrase_duplicate_similarity": 0.99,
+      "personal_phrases": "my manager, my boss, my payslip shows, my salary is, my contract says, my performance review, my medical, my sick note, my employee id, my employee number, for employee, on behalf of, my name is, summarise this, summarize this, this email, the attached, the following text",
+      "qdrant_timeout_seconds": 3,
+      "qdrant_url": "http://localhost:6333",
+      "search_candidates": 5,
+      "similarity_threshold": 0.97,
+      "skip_personal_data": true,
+      "skip_time_sensitive": true,
+      "sliding_ttl": true,
+      "sweep_interval_seconds": 3600,
+      "ttl_seconds": 86400,
+      "verifier_model": "cross-encoder/quora-roberta-base",
+      "verifier_threshold": 0.5,
+      "verify_threshold": 0.75
+    }
+  },
+  "identity": {
+    "code": {
+      "content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "files_sha256": {
+        "demo/__init__.py": "7db1c4a910d7309aa08aef8be3e29c1d8583b381789950e13bdebd23f4b58b2d",
+        "demo/app.py": "46851cbd6474a0f8c9df330d12ec51f3652c3761e73f86b996e00fda70ff3247",
+        "demo/locust/locustfile.py": "df1ab19ee5fe10bd33f0ed66fda48dd7ed7d5e53a2d6b63df69b96a9286a3fcd",
+        "demo/locust/workloads.py": "9835e3f0630bc278aef4dd5a8501fe0655e0978f1fa527cd74711ed82df8fb1d",
+        "demo/middleware.py": "e2a496e5a7fae9ec0b123b8f144e1877028ee36212b4494fc2c5e566e960a6bf",
+        "demo/telemetry.py": "8e219238cd0384e65a33ab42c812b9a2e702cb11faf48825bb3bedc37fe1cc2a",
+        "demo/tests/test_gateway_integration.py": "ea9d71a3c21e4a5d426324f9c9d4286d3cbb5ff5570e2c3764c855181c222db3",
+        "demo/tests/test_telemetry.py": "2ae1275197c79e25427ebc5f63d099f738c20fe9477f5de8affbde0cac0184e3",
+        "demo/tests/test_workloads.py": "62cc266b9b2a4fa46af4e9b4172a6eff85c4fa0858e14124812f25797a414873",
+        "main.py": "2b3ca9e6234a1a31e68a795da964ba34fecfd594a46f312677f6b50e404486d4",
+        "requirements.txt": "77045335de2221e9dde1e9b9b262e2ed582954446b6d287e2148a49419818f14",
+        "scheduler/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "scheduler/errors.py": "cc0a7c9b1fe2edcbe08c32dd7b0c9f30ced77f69169cbccdba93010109effee2",
+        "scheduler/factory.py": "1fa0666d6898cc065925d0e046341a33ac4b96b3dd331485496b9aafa5fa2d78",
+        "scheduler/fair_scheduler.py": "43af443934bf6abe98ecfb8375eaaf1b50bde3a504621caa0f313082583c491f",
+        "scheduler/job_store.py": "fc1edd6063e46e5157b8fbc8db792abe150189f7c24f0d3f3d161fc819623039",
+        "scheduler/rate_limiter.py": "877a9397fcd44c8ab6bb93ac6174cd7142cd22746a6d6a5a5ed6b17c42cc7144",
+        "scheduler/redis_backend.py": "2991cef23846a8ef4525363ada64f8c523d69e7d20a45ed4459ac9cd3192dd3f",
+        "scheduler/redis_scripts.py": "2f1461c8e5482245f9f6b4e076a72c72ca235a330b593160f6c8c7ad27304fb9",
+        "scheduler/reliability.py": "ebd3198eb7daf6786cc6d2212d28b354b21bab37365f38cb0f6629af0e32e5a9",
+        "scheduler/scheduler_worker.py": "4a8e12ac73237e293cd9353999e68753086ef0eea59c07236729eab4d2921415",
+        "smart_ai_gateway/__init__.py": "b5093ea24a6aa1ece5cf03b9d7f1d045af08dc223a6bbaaf82f243715bd0de0e",
+        "smart_ai_gateway/config.py": "0bd77798550c861ae7339804216c3a65e7ad287e264dfb627382119370f3e5ec",
+        "smart_ai_gateway/gateway.config": "4b0ccf533ad319b23ecf56362fe5b2ffaccdaf072cdc5860350794f6a586c08c",
+        "smart_ai_gateway/scripts/backfill_cache_timestamps.py": "ab45223cead2569bfa2d4bbfaf89b22d2feefb5a928aeaeb54767412ad759c6c",
+        "smart_ai_gateway/scripts/cache_matching_pairs.py": "aa0c7cdac9b5542a372c3a2abc44e359bb90fc90a0067c445104d225c78f236b",
+        "smart_ai_gateway/scripts/evaluate_cache_matching.py": "1dc050496092cd2669444a8ff591a4c35ea2478f96e92ac134607f8705b8154b",
+        "smart_ai_gateway/scripts/setup_qdrant.py": "00d7e503e8d8b79972fc10d2595df04ad1c20b5eb0921888466c5819989c8ae1",
+        "smart_ai_gateway/scripts/sweep_expired_cache.py": "a334e1271c6384dcbe1b2d4dd1da2fd7302fb9c1ec9a3adbdec298600ea6bad3",
+        "smart_ai_gateway/scripts/try_semantic_cache.py": "fa5436179a935a89cdd6077390e1318ca263f096c711d1d6d407f5cc52b661db",
+        "smart_ai_gateway/services/__init__.py": "8432f4539f039e5f691e52a586d3df99455c0e1ac729b67ec74b8bcc3b1cb875",
+        "smart_ai_gateway/services/cache_aging.py": "673409ac166ac10ad376709a3324212857523b48d9ce4177213ad1df23bfcc10",
+        "smart_ai_gateway/services/cache_checks.py": "20b8731bf6b88c656ce0152353719b00f71f288700a53090fc5358eb8ac8270e",
+        "smart_ai_gateway/services/clear_semantic_cache.py": "2b3a37808f3772f9e73750f0eb506abdae1eb4becc9b9e870107bb64bd90d266",
+        "smart_ai_gateway/services/llm.py": "569f41cb47efe4f7a5300d999155ef47527ea55292c01a9565f06f9c20d7097f",
+        "smart_ai_gateway/services/semantic_cache.py": "fcc90fce6a0f9ea314fa99a017fa1dce35558778c023acb4b22e0cd1c6dc9756"
+      },
+      "git_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f"
+    },
+    "config": "new",
+    "days": 20,
+    "env_overrides": [],
+    "harness_sha256": {
+      "bench.py": "68ebc4e4b598fb067a5e3fff38ee3db2f92e9b1051f6340c0241575cc4c018ce",
+      "provenance.py": "f075612f48a1653513b9dd0ac39faa0c1b1b70a4f36a76fcc4f61b15eabeb81a",
+      "replay.py": "c1dd06d1781dc99387f8d0a99b28f683e56b3261c0e024be1af9969f26b35416",
+      "workload.py": "1abe2c61223e866b12f29bca393b04001e9d3e5646934b41e8d958b02181372e"
+    },
+    "inputs": {
+      "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+      "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+    },
+    "isolation": "per_company",
+    "lam": 3.0,
+    "loaded_models": {
+      "embedding": {
+        "configured_name": "BAAI/bge-small-en-v1.5",
+        "resolved_revisions": [],
+        "revision_status": "unavailable"
+      },
+      "verifier": {
+        "configured_name": "cross-encoder/quora-roberta-base",
+        "resolved_revisions": [],
+        "revision_status": "unavailable"
+      }
+    },
+    "paraphrase_share": "0.5",
+    "personal_share": 0.05,
+    "seed": 5,
+    "sizes": [
+      10,
+      50,
+      200
+    ],
+    "time_share": 0.03,
+    "torch_threads": 1,
+    "variation": 0.0,
+    "versions": {
+      "fastapi": "0.143.0",
+      "httpx": "0.28.1",
+      "numpy": "2.4.6",
+      "platform": "Windows-10-10.0.26300-SP0",
+      "python": "3.11.9",
+      "qdrant-client": "1.19.1",
+      "sentence-transformers": "6.1.0",
+      "starlette": "1.7.0",
+      "torch": "2.14.1"
+    },
+    "zipf_s": "1.0"
+  },
+  "identity_sha256": "f092a45bdfeb36f74ab49cde8afa7749c98dacf79c3a277249cde1135cad3aae",
+  "measurement": "sequential offline replay; virtual cache time",
+  "request_count": 15469,
+  "schema_version": 2
+}

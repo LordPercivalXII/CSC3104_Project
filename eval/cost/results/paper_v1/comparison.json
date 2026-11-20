@@ -1,0 +1,1189 @@
+{
+  "schema_version": 1,
+  "raw_pairs_verified": 35,
+  "main_pooled": {
+    "nocache": {
+      "requests": 78363,
+      "hits": 0,
+      "correct_hits": 0,
+      "wrong_hits": 0,
+      "http_errors": 0,
+      "llm_calls": 78363
+    },
+    "old": {
+      "requests": 78363,
+      "hits": 48143,
+      "correct_hits": 46997,
+      "wrong_hits": 1146,
+      "http_errors": 0,
+      "llm_calls": 30220
+    },
+    "new": {
+      "requests": 78363,
+      "hits": 47072,
+      "correct_hits": 46903,
+      "wrong_hits": 169,
+      "http_errors": 0,
+      "llm_calls": 31291
+    }
+  },
+  "thresholds": [
+    {
+      "threshold": 0.9,
+      "pooled": {
+        "requests": 15013,
+        "hits": 7030,
+        "correct_hits": 7009,
+        "wrong_hits": 21,
+        "http_errors": 1,
+        "llm_calls": 7982
+      },
+      "mean_over_seeds": {
+        "config": "new",
+        "zipf_s": 1.0,
+        "para_share": 0.5,
+        "size": 50.0,
+        "seeds": 5.0,
+        "requests_per_seed": 3002.6,
+        "hit_rate": 0.4681316402263718,
+        "hit_rate_ci95": 0.0340579118007229,
+        "correct_hit_rate": 0.46673891053514716,
+        "correct_hit_rate_ci95": 0.03525475579757272,
+        "wrong_rate": 0.0013927296912246163,
+        "wrong_rate_ci95": 0.0015642607960681069,
+        "wrong_given_hit": 0.00308870578611476,
+        "wrong_given_hit_ci95": 0.003739906529334791,
+        "confusable_wrong_rate": 0.0012587936419322034,
+        "confusable_wrong_rate_ci95": 0.001476766717799654,
+        "error_rate": 6.529546196538671e-05,
+        "error_rate_ci95": 0.00018128926576542663,
+        "tokens_saved_frac": 0.4703594730390378,
+        "tokens_saved_frac_ci95": 0.04526018396117586,
+        "llm_calls_avoided": 1406.0,
+        "llm_calls_avoided_ci95": 116.2531748407773,
+        "cpu_per_req_s": 0.07605405843029239,
+        "cpu_per_req_s_ci95": 0.00493711278650179,
+        "synthetic_share": 0.08413107165474129,
+        "synthetic_share_ci95": 0.007852933758554857,
+        "lat_hit_median_ms": 57.7359,
+        "lat_hit_median_ms_ci95": 4.51471184127818,
+        "lat_hit_p95_ms": 211.46045999999996,
+        "lat_hit_p95_ms_ci95": 29.014845635238782,
+        "lat_miss_median_ms": 3367.3726,
+        "lat_miss_median_ms_ci95": 115.28899201363068,
+        "lat_miss_p95_ms": 8147.93042,
+        "lat_miss_p95_ms_ci95": 272.19576389421377,
+        "lat_all_median_ms": 1242.2946,
+        "lat_all_median_ms_ci95": 162.04673187481325,
+        "lat_all_p95_ms": 7535.167749999999,
+        "lat_all_p95_ms_ci95": 198.30472421319337
+      },
+      "per_seed": [
+        {
+          "seed": 1,
+          "requests": 3045,
+          "hits": 1482,
+          "correct_hits": 1478,
+          "wrong_hits": 4,
+          "http_errors": 0,
+          "llm_calls": 1563
+        },
+        {
+          "seed": 2,
+          "requests": 3063,
+          "hits": 1488,
+          "correct_hits": 1483,
+          "wrong_hits": 5,
+          "http_errors": 1,
+          "llm_calls": 1574
+        },
+        {
+          "seed": 3,
+          "requests": 2987,
+          "hits": 1256,
+          "correct_hits": 1246,
+          "wrong_hits": 10,
+          "http_errors": 0,
+          "llm_calls": 1731
+        },
+        {
+          "seed": 4,
+          "requests": 2986,
+          "hits": 1406,
+          "correct_hits": 1404,
+          "wrong_hits": 2,
+          "http_errors": 0,
+          "llm_calls": 1580
+        },
+        {
+          "seed": 5,
+          "requests": 2932,
+          "hits": 1398,
+          "correct_hits": 1398,
+          "wrong_hits": 0,
+          "http_errors": 0,
+          "llm_calls": 1534
+        }
+      ]
+    },
+    {
+      "threshold": 0.95,
+      "pooled": {
+        "requests": 15013,
+        "hits": 7003,
+        "correct_hits": 6992,
+        "wrong_hits": 11,
+        "http_errors": 0,
+        "llm_calls": 8010
+      },
+      "mean_over_seeds": {
+        "config": "new",
+        "zipf_s": 1.0,
+        "para_share": 0.5,
+        "size": 50.0,
+        "seeds": 5.0,
+        "requests_per_seed": 3002.6,
+        "hit_rate": 0.4663234915893315,
+        "hit_rate_ci95": 0.03579232845393276,
+        "correct_hit_rate": 0.465593567204318,
+        "correct_hit_rate_ci95": 0.03639782508256198,
+        "wrong_rate": 0.0007299243850135232,
+        "wrong_rate_ci95": 0.0009399162638354464,
+        "wrong_given_hit": 0.0016266788519948866,
+        "wrong_given_hit_ci95": 0.0021681233389496306,
+        "confusable_wrong_rate": 0.0005959883357211105,
+        "confusable_wrong_rate_ci95": 0.0008409535130243096,
+        "error_rate": 0.0,
+        "error_rate_ci95": 0.0,
+        "tokens_saved_frac": 0.4682902960514598,
+        "tokens_saved_frac_ci95": 0.04731011475847376,
+        "llm_calls_avoided": 1400.6,
+        "llm_calls_avoided_ci95": 121.4567010334252,
+        "cpu_per_req_s": 0.0748618419761029,
+        "cpu_per_req_s_ci95": 0.008345390930570788,
+        "synthetic_share": 0.08413107165474129,
+        "synthetic_share_ci95": 0.007852933758554857,
+        "lat_hit_median_ms": 51.854499999999994,
+        "lat_hit_median_ms_ci95": 6.184568989558356,
+        "lat_hit_p95_ms": 216.9486299999998,
+        "lat_hit_p95_ms_ci95": 40.102100741316505,
+        "lat_miss_median_ms": 3403.1760999999997,
+        "lat_miss_median_ms_ci95": 117.84936976321174,
+        "lat_miss_p95_ms": 8156.07726,
+        "lat_miss_p95_ms_ci95": 265.5547109960688,
+        "lat_all_median_ms": 1244.8809,
+        "lat_all_median_ms_ci95": 159.9262892834442,
+        "lat_all_p95_ms": 7549.411609999998,
+        "lat_all_p95_ms_ci95": 179.43239781161122
+      },
+      "per_seed": [
+        {
+          "seed": 1,
+          "requests": 3045,
+          "hits": 1475,
+          "correct_hits": 1475,
+          "wrong_hits": 0,
+          "http_errors": 0,
+          "llm_calls": 1570
+        },
+        {
+          "seed": 2,
+          "requests": 3063,
+          "hits": 1489,
+          "correct_hits": 1485,
+          "wrong_hits": 4,
+          "http_errors": 0,
+          "llm_calls": 1574
+        },
+        {
+          "seed": 3,
+          "requests": 2987,
+          "hits": 1243,
+          "correct_hits": 1238,
+          "wrong_hits": 5,
+          "http_errors": 0,
+          "llm_calls": 1744
+        },
+        {
+          "seed": 4,
+          "requests": 2986,
+          "hits": 1404,
+          "correct_hits": 1402,
+          "wrong_hits": 2,
+          "http_errors": 0,
+          "llm_calls": 1582
+        },
+        {
+          "seed": 5,
+          "requests": 2932,
+          "hits": 1392,
+          "correct_hits": 1392,
+          "wrong_hits": 0,
+          "http_errors": 0,
+          "llm_calls": 1540
+        }
+      ]
+    },
+    {
+      "threshold": 0.97,
+      "pooled": {
+        "requests": 15013,
+        "hits": 7003,
+        "correct_hits": 6992,
+        "wrong_hits": 11,
+        "http_errors": 0,
+        "llm_calls": 8010
+      },
+      "mean_over_seeds": {
+        "config": "new",
+        "zipf_s": 1.0,
+        "para_share": 0.5,
+        "size": 50.0,
+        "seeds": 5.0,
+        "requests_per_seed": 3002.6,
+        "hit_rate": 0.4663234915893315,
+        "hit_rate_ci95": 0.03579232845393276,
+        "correct_hit_rate": 0.465593567204318,
+        "correct_hit_rate_ci95": 0.03639782508256198,
+        "wrong_rate": 0.0007299243850135232,
+        "wrong_rate_ci95": 0.0009399162638354464,
+        "wrong_given_hit": 0.0016266788519948866,
+        "wrong_given_hit_ci95": 0.0021681233389496306,
+        "confusable_wrong_rate": 0.0005959883357211105,
+        "confusable_wrong_rate_ci95": 0.0008409535130243096,
+        "error_rate": 0.0,
+        "error_rate_ci95": 0.0,
+        "tokens_saved_frac": 0.4682902960514598,
+        "tokens_saved_frac_ci95": 0.04731011475847376,
+        "llm_calls_avoided": 1400.6,
+        "llm_calls_avoided_ci95": 121.4567010334252,
+        "cpu_per_req_s": 0.06862628863996476,
+        "cpu_per_req_s_ci95": 0.001884900381189827,
+        "synthetic_share": 0.08413107165474129,
+        "synthetic_share_ci95": 0.007852933758554857,
+        "lat_hit_median_ms": 46.8341,
+        "lat_hit_median_ms_ci95": 2.73712642421447,
+        "lat_hit_p95_ms": 199.25174999999996,
+        "lat_hit_p95_ms_ci95": 32.26972059333028,
+        "lat_miss_median_ms": 3383.0915999999997,
+        "lat_miss_median_ms_ci95": 107.54515659909234,
+        "lat_miss_p95_ms": 8149.279059999999,
+        "lat_miss_p95_ms_ci95": 267.9105145024017,
+        "lat_all_median_ms": 1242.3079,
+        "lat_all_median_ms_ci95": 164.56230097970635,
+        "lat_all_p95_ms": 7533.6873,
+        "lat_all_p95_ms_ci95": 186.3089089834027
+      },
+      "per_seed": [
+        {
+          "seed": 1,
+          "requests": 3045,
+          "hits": 1475,
+          "correct_hits": 1475,
+          "wrong_hits": 0,
+          "http_errors": 0,
+          "llm_calls": 1570
+        },
+        {
+          "seed": 2,
+          "requests": 3063,
+          "hits": 1489,
+          "correct_hits": 1485,
+          "wrong_hits": 4,
+          "http_errors": 0,
+          "llm_calls": 1574
+        },
+        {
+          "seed": 3,
+          "requests": 2987,
+          "hits": 1243,
+          "correct_hits": 1238,
+          "wrong_hits": 5,
+          "http_errors": 0,
+          "llm_calls": 1744
+        },
+        {
+          "seed": 4,
+          "requests": 2986,
+          "hits": 1404,
+          "correct_hits": 1402,
+          "wrong_hits": 2,
+          "http_errors": 0,
+          "llm_calls": 1582
+        },
+        {
+          "seed": 5,
+          "requests": 2932,
+          "hits": 1392,
+          "correct_hits": 1392,
+          "wrong_hits": 0,
+          "http_errors": 0,
+          "llm_calls": 1540
+        }
+      ]
+    },
+    {
+      "threshold": 0.99,
+      "pooled": {
+        "requests": 15013,
+        "hits": 7003,
+        "correct_hits": 6992,
+        "wrong_hits": 11,
+        "http_errors": 0,
+        "llm_calls": 8010
+      },
+      "mean_over_seeds": {
+        "config": "new",
+        "zipf_s": 1.0,
+        "para_share": 0.5,
+        "size": 50.0,
+        "seeds": 5.0,
+        "requests_per_seed": 3002.6,
+        "hit_rate": 0.4663234915893315,
+        "hit_rate_ci95": 0.03579232845393276,
+        "correct_hit_rate": 0.465593567204318,
+        "correct_hit_rate_ci95": 0.03639782508256198,
+        "wrong_rate": 0.0007299243850135232,
+        "wrong_rate_ci95": 0.0009399162638354464,
+        "wrong_given_hit": 0.0016266788519948866,
+        "wrong_given_hit_ci95": 0.0021681233389496306,
+        "confusable_wrong_rate": 0.0005959883357211105,
+        "confusable_wrong_rate_ci95": 0.0008409535130243096,
+        "error_rate": 0.0,
+        "error_rate_ci95": 0.0,
+        "tokens_saved_frac": 0.4682902960514598,
+        "tokens_saved_frac_ci95": 0.04731011475847376,
+        "llm_calls_avoided": 1400.6,
+        "llm_calls_avoided_ci95": 121.4567010334252,
+        "cpu_per_req_s": 0.06789576801724348,
+        "cpu_per_req_s_ci95": 0.004110814910456835,
+        "synthetic_share": 0.08413107165474129,
+        "synthetic_share_ci95": 0.007852933758554857,
+        "lat_hit_median_ms": 46.3959,
+        "lat_hit_median_ms_ci95": 2.167157530457583,
+        "lat_hit_p95_ms": 193.35201999999998,
+        "lat_hit_p95_ms_ci95": 26.018793039286898,
+        "lat_miss_median_ms": 3388.5839,
+        "lat_miss_median_ms_ci95": 107.67555107283142,
+        "lat_miss_p95_ms": 8150.899009999999,
+        "lat_miss_p95_ms_ci95": 268.46340783427684,
+        "lat_all_median_ms": 1243.8514,
+        "lat_all_median_ms_ci95": 159.91046678068508,
+        "lat_all_p95_ms": 7536.323329999999,
+        "lat_all_p95_ms_ci95": 187.6381353750739
+      },
+      "per_seed": [
+        {
+          "seed": 1,
+          "requests": 3045,
+          "hits": 1475,
+          "correct_hits": 1475,
+          "wrong_hits": 0,
+          "http_errors": 0,
+          "llm_calls": 1570
+        },
+        {
+          "seed": 2,
+          "requests": 3063,
+          "hits": 1489,
+          "correct_hits": 1485,
+          "wrong_hits": 4,
+          "http_errors": 0,
+          "llm_calls": 1574
+        },
+        {
+          "seed": 3,
+          "requests": 2987,
+          "hits": 1243,
+          "correct_hits": 1238,
+          "wrong_hits": 5,
+          "http_errors": 0,
+          "llm_calls": 1744
+        },
+        {
+          "seed": 4,
+          "requests": 2986,
+          "hits": 1404,
+          "correct_hits": 1402,
+          "wrong_hits": 2,
+          "http_errors": 0,
+          "llm_calls": 1582
+        },
+        {
+          "seed": 5,
+          "requests": 2932,
+          "hits": 1392,
+          "correct_hits": 1392,
+          "wrong_hits": 0,
+          "http_errors": 0,
+          "llm_calls": 1540
+        }
+      ]
+    }
+  ],
+  "threshold_095_097_099_identical_outcomes": true,
+  "http_failures": [
+    {
+      "run": "threshold_0.90",
+      "file": "threshold_0.90/raw/new__seed2__s1.0__p0.5__n50__d20.csv",
+      "seed": "2",
+      "idx": "303",
+      "intent": "fin_card_lost",
+      "status": "504",
+      "gw_wall_ms": "19787346.837",
+      "cpu_s": "0.01562"
+    }
+  ],
+  "benchmark_provenance": [
+    {
+      "run": "main",
+      "config": "new",
+      "seed": 1,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "main",
+      "config": "new",
+      "seed": 2,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "main",
+      "config": "new",
+      "seed": 3,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "main",
+      "config": "new",
+      "seed": 4,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "main",
+      "config": "new",
+      "seed": 5,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "main",
+      "config": "nocache",
+      "seed": 1,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {}
+    },
+    {
+      "run": "main",
+      "config": "nocache",
+      "seed": 2,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {}
+    },
+    {
+      "run": "main",
+      "config": "nocache",
+      "seed": 3,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {}
+    },
+    {
+      "run": "main",
+      "config": "nocache",
+      "seed": 4,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {}
+    },
+    {
+      "run": "main",
+      "config": "nocache",
+      "seed": 5,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {}
+    },
+    {
+      "run": "main",
+      "config": "old",
+      "seed": 1,
+      "source_commit": "200729938035bf7bab4238e11419fa8cb0d73216",
+      "source_content_sha256": "dbfa75e5180e4e0a57f4600ee258f40f3ad1806e986353ceb265e214d7e0b339",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "main",
+      "config": "old",
+      "seed": 2,
+      "source_commit": "200729938035bf7bab4238e11419fa8cb0d73216",
+      "source_content_sha256": "dbfa75e5180e4e0a57f4600ee258f40f3ad1806e986353ceb265e214d7e0b339",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "main",
+      "config": "old",
+      "seed": 3,
+      "source_commit": "200729938035bf7bab4238e11419fa8cb0d73216",
+      "source_content_sha256": "dbfa75e5180e4e0a57f4600ee258f40f3ad1806e986353ceb265e214d7e0b339",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "main",
+      "config": "old",
+      "seed": 4,
+      "source_commit": "200729938035bf7bab4238e11419fa8cb0d73216",
+      "source_content_sha256": "dbfa75e5180e4e0a57f4600ee258f40f3ad1806e986353ceb265e214d7e0b339",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "main",
+      "config": "old",
+      "seed": 5,
+      "source_commit": "200729938035bf7bab4238e11419fa8cb0d73216",
+      "source_content_sha256": "dbfa75e5180e4e0a57f4600ee258f40f3ad1806e986353ceb265e214d7e0b339",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.90",
+      "config": "new",
+      "seed": 1,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.90",
+      "config": "new",
+      "seed": 2,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.90",
+      "config": "new",
+      "seed": 3,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.90",
+      "config": "new",
+      "seed": 4,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.90",
+      "config": "new",
+      "seed": 5,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.95",
+      "config": "new",
+      "seed": 1,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.95",
+      "config": "new",
+      "seed": 2,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.95",
+      "config": "new",
+      "seed": 3,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.95",
+      "config": "new",
+      "seed": 4,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.95",
+      "config": "new",
+      "seed": 5,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.97",
+      "config": "new",
+      "seed": 1,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.97",
+      "config": "new",
+      "seed": 2,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.97",
+      "config": "new",
+      "seed": 3,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.97",
+      "config": "new",
+      "seed": 4,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.97",
+      "config": "new",
+      "seed": 5,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.99",
+      "config": "new",
+      "seed": 1,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.99",
+      "config": "new",
+      "seed": 2,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.99",
+      "config": "new",
+      "seed": 3,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.99",
+      "config": "new",
+      "seed": 4,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    },
+    {
+      "run": "threshold_0.99",
+      "config": "new",
+      "seed": 5,
+      "source_commit": "6476b9a6ac2fa973346e6bd5f408ccad866fcf5f",
+      "source_content_sha256": "b8567196e1d169300ef31316d42320c89f59f1d1a2e892e1665364e94fbf57d1",
+      "inputs": {
+        "intents_sha256": "97504353e2037ecb25c15786b0f343293e929b590a4f40e23998b57b12159d34",
+        "recordings_sha256": "f191df33f7367d788ca9b77b008a71957a73c2c34388ba005a08dbd8fda0404c"
+      },
+      "loaded_models": {
+        "embedding": {
+          "configured_name": "BAAI/bge-small-en-v1.5",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        },
+        "verifier": {
+          "configured_name": "cross-encoder/quora-roberta-base",
+          "resolved_revisions": [],
+          "revision_status": "unavailable"
+        }
+      }
+    }
+  ]
+}

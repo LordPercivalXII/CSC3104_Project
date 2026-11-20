@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: demo-prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: demo-prometheus
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: demo-prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: demo-prometheus
+subjects:
+  - kind: ServiceAccount
+    name: demo-prometheus
+    namespace: llm-gateway
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: demo-prometheus}
+  template:
+    metadata:
+      labels: {app: demo-prometheus}
+    spec:
+      serviceAccountName: demo-prometheus
+      securityContext:
+        fsGroup: 65534
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v3.5.5
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time=1d
+            - --storage.tsdb.retention.size=1GB
+          ports:
+            - {name: http, containerPort: 9090}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          readinessProbe:
+            httpGet: {path: /-/ready, port: http}
+          livenessProbe:
+            httpGet: {path: /-/healthy, port: http}
+          volumeMounts:
+            - {name: config, mountPath: /etc/prometheus, readOnly: true}
+            - {name: data, mountPath: /prometheus}
+      volumes:
+        - name: config
+          configMap: {name: demo-prometheus-config}
+        # Demo history is lost when this pod is replaced.
+        - name: data
+          emptyDir: {sizeLimit: 2Gi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-prometheus
+spec:
+  selector: {app: demo-prometheus}
+  ports:
+    - {name: http, port: 9090, targetPort: http}

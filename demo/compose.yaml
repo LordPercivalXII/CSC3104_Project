@@ -1,0 +1,132 @@
+name: smart-gateway-demo
+
+# Separate project/network/volumes from docker-compose.yml. No traffic starts automatically.
+# docker compose -f demo/compose.yaml up --build -d
+x-gateway-environment: &gateway-environment
+  QDRANT_URL: http://qdrant:6333
+  GW_SEMANTIC_CACHE_COLLECTION_NAME: demo_semantic_cache
+  GW_LLM_PROVIDER: ${DEMO_LLM_PROVIDER:-mock}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  GW_GATEWAY_DECISION_LOG_ENABLED: "false"
+  SCHEDULER_BACKEND: redis
+  REDIS_URL: redis://redis:6379/0
+  SCHEDULER_KEY_PREFIX: "demo:sched:"
+  LLM_RATE_LIMIT_PER_MINUTE: ${DEMO_LLM_RATE_LIMIT_PER_MINUTE:-0}
+  DEMO_MOCK_DELAY_SECONDS: ${DEMO_MOCK_DELAY_SECONDS:-1}
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.15.5
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+  redis:
+    image: redis:7.4-alpine
+    command: [redis-server, --appendonly, "yes", --maxmemory, 200mb, --maxmemory-policy, volatile-lru]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  qdrant-setup:
+    build:
+      context: ..
+    image: smart-gateway:demo
+    command: [sh, -c, "until python smart_ai_gateway/scripts/setup_qdrant.py; do echo 'waiting for Qdrant...'; sleep 2; done"]
+    environment: *gateway-environment
+    depends_on:
+      - qdrant
+    restart: "no"
+
+  gateway:
+    build:
+      context: ..
+    image: smart-gateway:demo
+    command: [python, -m, uvicorn, "demo.app:app", --host, 0.0.0.0, --port, "8000"]
+    environment: *gateway-environment
+    expose:
+      - "8000"
+    deploy:
+      replicas: 3
+    depends_on:
+      qdrant-setup:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 60s
+    stop_grace_period: 45s
+
+  proxy:
+    image: nginx:1.28-alpine
+    ports:
+      - "127.0.0.1:8001:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      gateway:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v3.5.5
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=1d
+      - --storage.tsdb.retention.size=1GB
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus/compose.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    environment:
+      PROMETHEUS_URL: http://prometheus:9090
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${DEMO_GRAFANA_PASSWORD:-demo-local-password}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  locust:
+    image: locustio/locust:2.37.14
+    command: [-f, /mnt/locust/locustfile.py, --host, "http://proxy", --web-host, 0.0.0.0]
+    environment:
+      DEMO_SCENARIO: ${DEMO_SCENARIO:-cache}
+      DEMO_REQUEST_TIMEOUT_SECONDS: ${DEMO_REQUEST_TIMEOUT_SECONDS:-180}
+      DEMO_INTENTS_PATH: /mnt/data/intents.json
+      DEMO_DATA_SEED: ${DEMO_DATA_SEED:-1}
+      DEMO_PARAPHRASE_SHARE: ${DEMO_PARAPHRASE_SHARE:-0.5}
+      DEMO_PERSONAL_SHARE: ${DEMO_PERSONAL_SHARE:-0.05}
+      DEMO_TIME_SHARE: ${DEMO_TIME_SHARE:-0.03}
+      DEMO_ZIPF_S: ${DEMO_ZIPF_S:-1.0}
+    ports:
+      - "127.0.0.1:8089:8089"
+    volumes:
+      - ./locust:/mnt/locust:ro
+      - ../eval/cost/data/intents.json:/mnt/data/intents.json:ro
+    depends_on:
+      - proxy
+
+volumes:
+  qdrant-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:

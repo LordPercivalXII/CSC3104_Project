@@ -1,0 +1,36 @@
+# Deletes aged-out semantic-cache entries from Qdrant (ttl_seconds / max_age_seconds in gateway.config).
+# Expired entries are never served anyway; this only frees storage. One job per schedule, not one per pod.
+# Run it now:  kubectl -n llm-gateway create job --from=cronjob/cache-sweep cache-sweep-now
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cache-sweep
+  namespace: llm-gateway
+spec:
+  schedule: "0 * * * *"                # hourly; sweep_interval_seconds in gateway.config is for docker compose only
+  concurrencyPolicy: Forbid            # never two sweeps at once
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          volumes:
+            - name: gateway-config     # the same ConfigMap the gateway pods read
+              configMap:
+                name: gateway-config
+          containers:
+            - name: sweep
+              image: smart-gateway:dev
+              imagePullPolicy: IfNotPresent
+              command: ["python", "smart_ai_gateway/scripts/sweep_expired_cache.py"]
+              env:
+                - {name: QDRANT_URL, value: "http://qdrant:6333"}
+                - {name: GATEWAY_CONFIG, value: /etc/gateway/gateway.config}
+              volumeMounts:
+                - {name: gateway-config, mountPath: /etc/gateway, readOnly: true}
+              resources:               # no embedding model here, just the Qdrant client
+                requests: {cpu: 50m, memory: 128Mi}
+                limits: {cpu: 500m, memory: 256Mi}

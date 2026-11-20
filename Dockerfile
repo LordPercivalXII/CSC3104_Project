@@ -1,25 +1,54 @@
+# One image for the whole gateway: web app, semantic-cache client and fair-share worker.
+# Build context = the repo root (same layout as main).
 
 # Use Python 3.11 with a lightweight Linux environment
 FROM python:3.11-slim
 
 # Python configuration
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/opt/hf-cache
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy the Python dependencies list
-COPY requirements.txt .
+# CPU-only PyTorch first. The default Linux wheel pulls ~2 GB of CUDA libraries that a
+# CPU-only embedding model never uses; with this installed, requirements.txt reuses it.
+RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
 
-# Install dependencies inside the container
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the Python dependencies list and install it
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Bake the embedding model and the cache verifier (cross-encoder) into the image so every
+# container starts without downloading them.
+# The names must match embedding_model and verifier_model in smart_ai_gateway/gateway.config.
+RUN python -c "from sentence_transformers import SentenceTransformer, CrossEncoder; SentenceTransformer('BAAI/bge-small-en-v1.5'); CrossEncoder('cross-encoder/quora-roberta-base')"
+
+# Runtime settings (after the download, so the layers above stay cached):
+# HF_HUB_OFFLINE=1: use the baked models without Hugging Face network checks at startup.
+# OMP/MKL_NUM_THREADS=1: one PyTorch thread per model call. By default PyTorch starts one
+# thread per host CPU (16 on a typical laptop) even when the container may only use 1 CPU
+# (k8s/gateway.yaml limits). Those threads must run together, so under a CPU limit they wait
+# on each other: in a 20-user load test /chat slowed from 56 ms to 1.3-2.7 s and then stopped
+# answering. The cost benchmark already runs with one thread (bench.py --torch-threads 1), so
+# this also makes every deployment match the measured configuration. Calls to one model are
+# serialised by a lock anyway; throughput comes from replicas, not from threads.
+ENV HF_HUB_OFFLINE=1 \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1
 
 # Copy the application files
 COPY main.py .
 COPY static/ ./static/
 COPY scheduler/ ./scheduler/
 COPY smart_ai_gateway/ ./smart_ai_gateway/
+COPY demo/ ./demo/
+
+# Do not run as root
+RUN useradd --create-home --uid 1000 app && mkdir -p /app/data && chown app:app /app/data
+USER app
 
 # Document the application's listening port
 EXPOSE 8000

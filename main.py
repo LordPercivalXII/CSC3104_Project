@@ -1,29 +1,145 @@
 import asyncio
+import os
+import threading
+import time
 from contextlib import asynccontextmanager
-from scheduler.scheduler_worker import SchedulerWorker
+from datetime import datetime, timezone
+from scheduler.factory import create_scheduler_worker
+from scheduler.redis_backend import RemoteInferenceError
+from scheduler.errors import QueueFullError, SchedulerTimeoutError, SchedulerUnavailableError
 
 from pathlib import Path
 # This annotated thing is a tool in Python's typing module used to add extra, custom metadata to type hints.
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, StringConstraints
 
-from smart_ai_gateway.services.semantic_cache import (generate_embedding, search_cache, store_cache)
+from smart_ai_gateway.config import get_settings, resolve_path
+from smart_ai_gateway.connection_recycling import ConnectionRecyclingMiddleware, max_age_from_env
+from smart_ai_gateway.services import semantic_cache
+from smart_ai_gateway.services.semantic_cache import (
+    append_jsonl, cache_skip_reason, generate_embedding, record_hit, report_wrong_match,
+    search_cache_detailed, store_cache, store_paraphrase,
+)
+from smart_ai_gateway.services.llm import LLMUnavailable, generate_answer, source_name
 
 from starlette.concurrency import run_in_threadpool
+from demo.middleware import GatewayMetricsMiddleware
+from demo.telemetry import CONTENT_TYPE_LATEST, metrics
 
-def call_ai_model(prompt: str) -> str:
-    """
-    Placeholder function to call the AI model.
-    In a real implementation, this would interface with an AI service.
-    """
-    # For now, return a mock response
-    return f"Generated AI response to: {prompt}"
+# [gateway] in gateway.config: request limits and the decision log
+_gateway_cfg = get_settings().gateway
+_request_timeout_seconds = float(os.getenv("SCHEDULER_REQUEST_TIMEOUT_SECONDS", "120"))
+if _request_timeout_seconds <= 0:
+    raise ValueError("SCHEDULER_REQUEST_TIMEOUT_SECONDS must be positive")
 
-scheduler_worker = SchedulerWorker(inference_fn=call_ai_model)
+# The LLM ([llm] in gateway.config) answers cache misses, one request at a time in fair-share order
+# SCHEDULER_BACKEND=redis shares one queue between all gateway pods (see scheduler/factory.py)
+def _observed_generate_answer(prompt: str):
+    """Count inference executions on the processing pod, including failed calls.
+
+    These are scheduler-level calls; Gemini's internal HTTP retries are not counted.
+    """
+    provider = get_settings().llm.provider
+    started = metrics.inference_started(provider)
+    try:
+        answer = generate_answer(prompt)
+    except Exception:
+        metrics.inference_finished(provider, started, error=True)
+        raise
+    metrics.inference_finished(provider, started, response=answer)
+    return answer
+
+
+scheduler_worker = create_scheduler_worker(inference_fn=_observed_generate_answer)
+metrics.configure(
+    scheduler_worker,
+    get_settings().llm.provider,
+    get_settings().llm.model,
+    os.getenv("SCHEDULER_BACKEND", "memory").lower(),
+)
+
+
+async def wait_for_llm(future):
+    """Translate scheduler/provider failures into bounded, generic API errors."""
+    try:
+        return await asyncio.shield(asyncio.wrap_future(future))
+    except SchedulerTimeoutError:
+        raise HTTPException(status_code=504, detail="The request deadline was exceeded.") from None
+    except QueueFullError:
+        raise HTTPException(status_code=429, detail="The request queue is full; try again later.",
+                            headers={"Retry-After": "5"}) from None
+    except SchedulerUnavailableError:
+        raise HTTPException(status_code=503, detail="The request could not be completed; try again later.") from None
+    # RemoteInferenceError: the LLM call failed on another pod (redis mode)
+    except (LLMUnavailable, RemoteInferenceError) as exc:
+        print(f"LLM unavailable ({type(exc).__name__})")
+        raise HTTPException(
+            status_code=429 if exc.rate_limited else 503,
+            detail="The AI service rate limit was reached." if exc.rate_limited else "The AI service is temporarily unavailable.",
+            headers={"Retry-After": "60"} if exc.rate_limited else None,
+        )
+
+
+async def _submit_and_wait(user_id, prompt, dedup=False):
+    cancelled, submitted = threading.Event(), []
+
+    def submit():
+        future = scheduler_worker.submit(user_id, prompt, dedup=dedup)
+        submitted.append(future)
+        if cancelled.is_set():
+            future.cancel()
+        return future
+
+    try:
+        future = await run_in_threadpool(submit)
+        return await wait_for_llm(future)
+    except asyncio.CancelledError:
+        cancelled.set()
+        for future in submitted:
+            await run_in_threadpool(future.cancel)
+        raise
+    except HTTPException:
+        raise
+    except QueueFullError:
+        raise HTTPException(status_code=429, detail="The request queue is full; try again later.", headers={"Retry-After": "5"}) from None
+    except Exception as exc:
+        print(f"Scheduler unavailable ({type(exc).__name__})")
+        raise HTTPException(status_code=503, detail="The request scheduler is temporarily unavailable.") from None
+
+
+async def _within_deadline(operation, request=None):
+    """Bound the whole route, including embedding, submission, queueing and inference."""
+    task = asyncio.create_task(operation)
+    watcher = None
+
+    async def disconnected():
+        while True:
+            # Starlette probes receive() inside its own AnyIO cancellation scope.
+            # Shield that short probe so it cannot swallow cancellation of this
+            # watcher and leave the route's final gather waiting indefinitely.
+            if await asyncio.shield(request.is_disconnected()):
+                return
+            await asyncio.sleep(0.2)
+
+    try:
+        if request is not None:
+            watcher = asyncio.create_task(disconnected())
+        done, _ = await asyncio.wait({task, watcher} if watcher else {task},
+                                     timeout=_request_timeout_seconds, return_when=asyncio.FIRST_COMPLETED)
+        if task in done:
+            return task.result()
+        if watcher is not None and watcher in done:
+            raise HTTPException(status_code=499, detail="The client disconnected.")
+        raise HTTPException(status_code=504, detail="The request deadline was exceeded.")
+    finally:
+        for pending in (task, watcher):
+            if pending is not None and not pending.done():
+                pending.cancel()
+        await asyncio.gather(*(p for p in (task, watcher) if p is not None), return_exceptions=True)
 
 
 @asynccontextmanager
@@ -32,10 +148,13 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        scheduler_worker.stop()
+        await run_in_threadpool(scheduler_worker.stop)
 
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(GatewayMetricsMiddleware)
+# Outermost: periodically closes keep-alive connections so newly scaled replicas get traffic
+app.add_middleware(ConnectionRecyclingMiddleware, max_age_seconds=max_age_from_env())
 
 # Resolve paths relative to this Python file
 BASE_DIR = Path(__file__).resolve().parent
@@ -49,14 +168,14 @@ app.mount(
 )
 
 
-# Expected JSON request body
+# Expected JSON request body. The length limits come from [gateway] in gateway.config.
 class ChatRequest(BaseModel):
     user_id : Annotated[
         str,
         StringConstraints(
             strip_whitespace=True,
             min_length=1,
-            max_length=128,
+            max_length=_gateway_cfg.user_id_max_length,
         ),
     ]
     prompt: Annotated[
@@ -64,13 +183,86 @@ class ChatRequest(BaseModel):
         StringConstraints(
             strip_whitespace=True,
             min_length=1,
-            max_length=4000,
+            max_length=_gateway_cfg.prompt_max_length,
         ),
     ]
 
-class SchedulerChatRequest(BaseModel):
-    user_id: str
-    prompt: str
+class SchedulerChatRequest(ChatRequest):
+    pass
+
+# "This answer was wrong" (POST /feedback)
+class FeedbackRequest(BaseModel):
+    # The "point_id" of the cached answer, from the /chat response
+    point_id: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)]
+    # The question the user asked (not the cached one)
+    prompt: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=_gateway_cfg.prompt_max_length),
+    ]
+    reason: Optional[Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)]] = None
+
+
+# --- background helpers: they run after the response is sent, and never raise ----------
+
+def _store_in_background(prompt: str, answer: str, embedding: list[float]):
+    # A Qdrant failure here only means this answer is not cached (REVIEW C8)
+    try:
+        store_cache(prompt=prompt, response=answer, embedding=embedding)
+    except Exception as exc:
+        print(f"Could not store the answer in the semantic cache: {exc!r}")
+
+
+def _store_paraphrase_in_background(prompt: str, embedding: list[float], hit: dict):
+    try:
+        store_paraphrase(prompt, embedding, hit)
+    except Exception as exc:
+        print(f"Could not store the new wording in the semantic cache: {exc!r}")
+
+
+def _log_decision(record: dict):
+    """
+    Append one line to the decision log (decision_log_path), if it is on.
+    Logging must never break a request, so errors are only printed.
+    """
+    if not _gateway_cfg.decision_log_enabled:
+        return
+    try:
+        append_jsonl(resolve_path(_gateway_cfg.decision_log_path), record)
+    except Exception as exc:
+        print(f"Could not write the decision log: {exc!r}")
+
+
+def _ms_since(started: float) -> float:
+    return round((time.perf_counter() - started) * 1000, 1)
+
+
+def _new_decision(request: ChatRequest) -> dict:
+    """
+    The decision-log record for one /chat request, filled in as the request goes along.
+    """
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "request_id": None,
+        "user_id": request.user_id,
+        "prompt_chars": len(request.prompt),   # the prompt itself is not logged
+        "skip_reason": None,
+        # skipped | direct_hit | verified_hit | rule_rejected | verifier_rejected |
+        # below_threshold | miss | cache_error
+        "stage": None,
+        "top_similarity": None,
+        "effective_score": None,
+        "verifier_score": None,
+        "rule_reason": None,
+        "point_id": None,
+        "source": None,
+        "coalesced": False,
+        "cacheable": None,
+        "stored": False,
+        "usage": None,
+        "error": None,
+        "latency_ms": {"total": None, "embed": None, "search": None, "verify": None, "llm": None},
+    }
+
 
 # END POINTS HERE, can probably move them to another folder later.
 # Serve the frontend webpage
@@ -85,58 +277,200 @@ def health():
     return {"status": "healthy"}
 
 
+@app.get("/ready")
+def ready():
+    """Dependency readiness; liveness remains independent at /health."""
+    try:
+        if not semantic_cache.client.collection_exists(semantic_cache.COLLECTION_NAME):
+            raise RuntimeError("Cache collection is missing")
+        if os.getenv("SCHEDULER_BACKEND", "memory").lower() == "redis":
+            import redis
+            from redis.backoff import NoBackoff
+            from redis.retry import Retry
+            client = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+                                          socket_connect_timeout=0.5, socket_timeout=0.5,
+                                          retry=Retry(NoBackoff(), 0))
+            try:
+                client.ping()
+            finally:
+                client.close()
+    except Exception:
+        raise HTTPException(status_code=503, detail="Gateway dependencies are not ready.") from None
+    return {"status": "ready"}
+
+
+@app.get("/metrics", include_in_schema=False)
+def prometheus_metrics():
+    return Response(content=metrics.render(), headers={"Content-Type": CONTENT_TYPE_LATEST})
+
+
 # Receive a user's prompt
 @app.post("/chat")
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest, background_tasks: BackgroundTasks, http_request: Request = None):
+    return await _within_deadline(_chat(request, background_tasks), http_request)
+
+
+async def _chat(request: ChatRequest, background_tasks: BackgroundTasks):
+    started = time.perf_counter()
     user_prompt = request.prompt
+    decision = _new_decision(request)
+    latency = decision["latency_ms"]
+
+    # Time-sensitive, long, pasted and personal prompts bypass the cache: not searched, not stored.
+    skip_reason = await run_in_threadpool(
+        cache_skip_reason, user_prompt
+    )
+    if skip_reason is not None:
+        print(f"Cache skipped: {skip_reason}")
+        decision["skip_reason"], decision["stage"] = skip_reason, "skipped"
 
     # Run synchronous embedding and database calls off the event loop.
-    embedding = await run_in_threadpool(
-        generate_embedding, user_prompt
-    )
-    cached_result = await run_in_threadpool(
-        search_cache, embedding
-    )
+    # cache_ok: the cache was searched without errors, so the answer may be stored in it.
+    embedding, cached_result, cache_ok = None, None, False
+    if skip_reason is None:
+        try:
+            phase = time.perf_counter()
+            embedding = await run_in_threadpool(
+                generate_embedding, user_prompt
+            )
+            latency["embed"] = _ms_since(phase)
+            phase = time.perf_counter()
+            cached_result, details = await run_in_threadpool(
+                search_cache_detailed, user_prompt, embedding
+            )
+            cache_ok = True
+            latency["search"], latency["verify"] = details["search_ms"], details["verify_ms"]
+            decision.update(
+                stage=details["stage"],
+                top_similarity=details["top_similarity"],
+                effective_score=details["best_score"],
+                verifier_score=details["verifier_score"],
+                rule_reason=details["rule_reason"],
+            )
+        except Exception as exc:
+            # Qdrant down or slow (or the model failed): the cache is optional, so carry on
+            # as a cache miss and let the LLM answer (REVIEW C8)
+            print(f"Semantic cache unavailable, asking the LLM instead: {exc!r}")
+            decision["stage"], decision["error"] = "cache_error", repr(exc)
+            # Time lost on the failing phase (embed if it failed there, else search)
+            latency["embed" if latency["embed"] is None else "search"] = _ms_since(phase)
+            cached_result = None
 
     # Cached answers do not need a turn on the inference worker.
     if cached_result is not None:
+        # Refresh the entry's last-hit time after the response is sent (keeps it alive with sliding_ttl)
+        background_tasks.add_task(
+            record_hit,
+            cached_result["point_id"],
+            cached_result["hit_count"],
+        )
+        # The verifier confirmed a new wording: store it, so next time it is a direct hit
+        if cached_result["match_type"] == "verified":
+            background_tasks.add_task(
+                _store_paraphrase_in_background, user_prompt, embedding, cached_result
+            )
+        decision.update(point_id=str(cached_result["point_id"]), source="semantic_cache")
+        latency["total"] = _ms_since(started)
+        metrics.observe_decision(decision)
+        background_tasks.add_task(_log_decision, decision)
         return {
             "response": cached_result["response"],
             "source": "semantic_cache",
             "similarity_score": cached_result["similarity_score"],
+            "effective_score": cached_result["effective_score"],
+            "match_type": cached_result["match_type"],
+            "verifier_score": cached_result["verifier_score"],
+            "age_seconds": cached_result["age_seconds"],
+            # Send this to POST /feedback if the answer was wrong
+            "point_id": str(cached_result["point_id"]),
+            # No LLM tokens were used
+            "usage": None,
         }
 
     # Queue the cache miss and wait without blocking other HTTP requests.
-    future = scheduler_worker.submit(
-        request.user_id,
-        user_prompt,
-    )
-    result = await asyncio.wrap_future(future)
-    answer = result["response"]
+    # Cacheable questions asked at the same time share one LLM call.
+    phase = time.perf_counter()
+    try:
+        result = await _submit_and_wait(request.user_id, user_prompt, dedup=skip_reason is None)
+    except HTTPException:
+        # Background tasks do not run for an error response, so log straight away
+        latency["llm"], latency["total"] = _ms_since(phase), _ms_since(started)
+        decision.update(source=source_name(), error="llm_unavailable")
+        metrics.observe_decision(decision)
+        await run_in_threadpool(_log_decision, decision)
+        raise
+    latency["llm"] = _ms_since(phase)
 
-    # Store only successfully generated answers.
-    await run_in_threadpool(
-        store_cache,
-        prompt=user_prompt,
-        response=answer,
-        embedding=embedding,
+    answer = result["response"]
+    coalesced = result.get("coalesced", False)
+    # False for truncated or safety-stopped answers: returned to the user, but never cached (C9)
+    cacheable = result.get("cacheable", True)
+    usage = result.get("usage")
+
+    # Store only complete answers, once per LLM call, after the response is sent: a slow or
+    # failing Qdrant then costs the user nothing (REVIEW C8). Normally the leader stores the
+    # answer; when the leader's caller timed out or left, the scheduler names one follower
+    # as the store owner so the paid-for answer is still cached.
+    store_owner = result.get("store_owner", False)
+    store = cache_ok and embedding is not None and (not coalesced or store_owner) and cacheable
+    if store:
+        background_tasks.add_task(_store_in_background, user_prompt, answer, embedding)
+    elif cache_ok and not cacheable:
+        print(f"Answer not cached: incomplete (finish reason {result.get('finish_reason')})")
+
+    decision.update(
+        request_id=result.get("request_id"),
+        source=source_name(),
+        coalesced=coalesced,
+        cacheable=cacheable,
+        stored=store,
+        usage=usage,
     )
+    latency["total"] = _ms_since(started)
+    metrics.observe_decision(decision)
+    background_tasks.add_task(_log_decision, decision)
 
     return {
         "response": answer,
-        "source": "mock_llm",
+        "source": source_name(),
         "similarity_score": None,
+        "cache_skipped": skip_reason,
+        "coalesced": coalesced,
         "request_id": result["request_id"],
+        # Tokens the LLM call used (prompt, output, thinking, total), when the LLM reports them
+        "usage": usage,
+    }
+
+
+# "This answer was wrong": removes the cached answer and records the question pair
+@app.post("/feedback")
+async def feedback(request: FeedbackRequest):
+    try:
+        outcome = await run_in_threadpool(
+            report_wrong_match,
+            request.point_id,
+            request.prompt,
+            request.reason,
+            resolve_path(semantic_cache._cfg.feedback_path),
+        )
+    except Exception as exc:
+        print(f"Could not process feedback for point {request.point_id}: {exc!r}")
+        raise HTTPException(status_code=503, detail="The cache is unavailable; please try again later.")
+
+    if outcome is None:
+        raise HTTPException(status_code=404, detail="No cached answer with this point_id (it may already be removed).")
+
+    return {
+        "status": "removed",
+        "point_id": outcome["point_id"],
+        # The answer itself plus any other wordings that pointed at it
+        "deleted_points": outcome["deleted_points"],
+        "message": "Thanks. This answer will not be served again; the next person who asks gets a fresh answer.",
     }
 
 # This is used for testing the scheduler without the caching.
 @app.post("/scheduler/chat")
-async def scheduler_chat(request: SchedulerChatRequest):
-    future = scheduler_worker.submit(
-        request.user_id,
-        request.prompt
-    )
-
-    result = await asyncio.wrap_future(future)
-
+async def scheduler_chat(request: SchedulerChatRequest, http_request: Request = None):
+    result = await _within_deadline(_submit_and_wait(request.user_id, request.prompt), http_request)
+    result["source"] = source_name()
     return result

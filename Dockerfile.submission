@@ -1,0 +1,12 @@
+# Submission image: the normal gateway image plus the whole project under /project
+# (manifests, scripts, tests, evaluation data and results), so the marker needs only this image.
+#
+#   docker build -t smart-gateway:dev .                                  # the gateway image first
+#   docker build -f Dockerfile.submission -t smart-gateway:dev .         # then add /project
+#   docker save smart-gateway:dev -o GROUP10_image.tar
+#
+# What is copied is limited by Dockerfile.submission.dockerignore (no .env, no .git, no caches).
+FROM smart-gateway:dev
+USER root
+COPY --chown=app:app . /project
+USER app

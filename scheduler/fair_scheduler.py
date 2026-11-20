@@ -49,3 +49,14 @@ class FairShareScheduler:
                 len(queue)
                 for queue in self.queues.values()
             )
+
+    def prune(self, keep):
+        """Discard terminal queue markers without waiting for a rate-limit slot."""
+        with self.lock:
+            for user, queue in list(self.queues.items()):
+                remaining = deque(item for item in queue if keep(item))
+                if remaining:
+                    self.queues[user] = remaining
+                else:
+                    del self.queues[user]
+            self.active_users = deque(user for user in self.active_users if user in self.queues)

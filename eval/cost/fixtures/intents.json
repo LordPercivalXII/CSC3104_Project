@@ -1,0 +1,85 @@
+{
+ "version": 1,
+ "intents": [
+  {
+   "id": "it_vpn_connect",
+   "category": "IT",
+   "canonical": "How do I connect to the company VPN?",
+   "paraphrases": [
+    "How can I connect to the corporate VPN?",
+    "What are the steps to set up the company VPN?",
+    "I need to get on the company VPN, how?"
+   ],
+   "confusable_with": [
+    "it_vpn_disconnect"
+   ]
+  },
+  {
+   "id": "it_vpn_disconnect",
+   "category": "IT",
+   "canonical": "How do I disconnect from the company VPN?",
+   "paraphrases": [
+    "How can I log out of the corporate VPN?",
+    "What is the way to turn off the company VPN?"
+   ],
+   "confusable_with": [
+    "it_vpn_connect"
+   ]
+  },
+  {
+   "id": "it_password_reset",
+   "category": "IT",
+   "canonical": "How do I reset my password?",
+   "paraphrases": [
+    "I forgot my password, how do I reset it?",
+    "What is the procedure to reset my account password?",
+    "How can I change a forgotten password?"
+   ],
+   "confusable_with": []
+  },
+  {
+   "id": "hr_annual_leave",
+   "category": "HR",
+   "canonical": "How do I apply for annual leave?",
+   "paraphrases": [
+    "How can I request annual leave?",
+    "What is the process for booking annual leave?",
+    "Where do I submit a vacation request?"
+   ],
+   "confusable_with": [
+    "hr_sick_leave"
+   ]
+  },
+  {
+   "id": "hr_sick_leave",
+   "category": "HR",
+   "canonical": "How do I apply for sick leave?",
+   "paraphrases": [
+    "How can I report that I am sick and need leave?",
+    "What is the process for medical leave?"
+   ],
+   "confusable_with": [
+    "hr_annual_leave"
+   ]
+  },
+  {
+   "id": "fac_book_room",
+   "category": "Facilities",
+   "canonical": "How do I book a meeting room?",
+   "paraphrases": [
+    "How can I reserve a conference room?",
+    "What is the way to book a meeting room for tomorrow?",
+    "Where can I reserve a meeting space?"
+   ],
+   "confusable_with": []
+  }
+ ],
+ "personal_templates": [
+  "Summarise this email for me: {pasted}",
+  "My manager {name} said {pasted}. What should I do?"
+ ],
+ "time_sensitive": [
+  "What's on the cafeteria menu today?",
+  "Is the office open this week?"
+ ]
+}

@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: [namespace.yaml, qdrant.yaml, redis.yaml, gateway.yaml, cache-sweep.yaml]
+
+# The single settings file of the app becomes a ConfigMap mounted in every gateway pod.
+# It lives outside k8s/, so build with:
+#   kubectl kustomize --load-restrictor LoadRestrictionsNone k8s | kubectl apply -f -
+# (up.sh does this.)
+configMapGenerator:
+  - name: gateway-config
+    namespace: llm-gateway
+    files:
+      - gateway.config=../smart_ai_gateway/gateway.config

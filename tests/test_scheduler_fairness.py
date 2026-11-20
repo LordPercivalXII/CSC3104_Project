@@ -122,7 +122,7 @@ class TestFairnessGuarantees(unittest.TestCase):
                 self.assertEqual(sequence, list(range(1, per_employee + 1)))
 
     def test_light_employees_wait_less_than_with_fifo(self):
-        # Same workload as test_scheduler_performance.py
+        # Same workload as scripts/manual/scheduler_performance.py
         workload = (
             [("A", f"A{i}") for i in range(1, 11)]
             + [("B", f"B{i}") for i in range(1, 3)]

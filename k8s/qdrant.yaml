@@ -1,0 +1,46 @@
+# Semantic cache store (vector search), shared by every gateway replica.
+# The gateway creates its own "semantic_cache" collection on startup.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qdrant
+  namespace: llm-gateway
+spec:
+  serviceName: qdrant
+  replicas: 1
+  selector:
+    matchLabels: {app: qdrant}
+  template:
+    metadata:
+      labels: {app: qdrant}
+    spec:
+      containers:
+        - name: qdrant
+          image: qdrant/qdrant:latest      # compose uses :latest too; pin a tag matching qdrant-client for production
+          ports: [{containerPort: 6333}]
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 1Gi}
+          readinessProbe:
+            httpGet: {path: /readyz, port: 6333}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /healthz, port: 6333}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - {name: data, mountPath: /qdrant/storage}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: {requests: {storage: 2Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant
+  namespace: llm-gateway
+spec:
+  selector: {app: qdrant}
+  ports: [{port: 6333, targetPort: 6333}]

@@ -1,0 +1,56 @@
+# Fair-share queue, job statuses and LLM rate limit, shared by every gateway replica
+# (scheduler/redis_backend.py). One pod with a volume, like Qdrant.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: llm-gateway
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels: {app: redis}
+  template:
+    metadata:
+      labels: {app: redis}
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          args:
+            - --appendonly             # log every write to the volume, so queued requests survive a restart
+            - "yes"
+            - --maxmemory
+            - 200mb
+            - --maxmemory-policy       # when full, evict only keys with a TTL (job statuses, results),
+            - volatile-lru             # never the queue keys, which have none
+          ports: [{containerPort: 6379}]
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "[ \"$(redis-cli ping)\" = PONG ]"]
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "[ \"$(redis-cli ping)\" = PONG ]"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          volumeMounts:
+            - {name: data, mountPath: /data}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: {requests: {storage: 1Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: llm-gateway
+spec:
+  selector: {app: redis}
+  ports: [{port: 6379, targetPort: 6379}]

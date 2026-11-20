@@ -1,0 +1,3 @@
+pytest
+fakeredis[lua]>=2.20
+matplotlib
